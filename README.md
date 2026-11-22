@@ -3,6 +3,18 @@
 Outil de maintenance Windows : un seul `.exe`, rien qui tourne en arrière-plan, rien de supprimé sans accord.
 Fonctionne sur Windows 10 et Windows 11 (64 bits), sans rien installer avant.
 
+## Télécharger
+
+**[Télécharger RebootCamp.exe](https://github.com/TomRolling/Reboot-Camp/releases/latest/download/RebootCamp.exe)** (dernière version, environ 60 Mo)
+
+1. Double-cliquer sur le fichier téléchargé.
+2. Windows affiche « Windows a protégé votre ordinateur » : cliquer sur **Informations complémentaires**, puis **Exécuter quand même**. Cet écran apparaît parce que le fichier n'a pas de signature payante, pas parce qu'il est dangereux. Il ne revient pas aux lancements suivants.
+3. Windows demande les droits administrateur : répondre **Oui**.
+
+Toutes les versions sont sur la page [Releases](https://github.com/TomRolling/Reboot-Camp/releases).
+
+## Ce que fait l'appli
+
 | Onglet | Ce qu'il fait |
 |---|---|
 | **Accueil** | Un bouton « Analyser » qui enchaîne toutes les analyses et résume le résultat. |
@@ -14,8 +26,9 @@ Fonctionne sur Windows 10 et Windows 11 (64 bits), sans rien installer avant.
 
 ## Utilisation
 
-Copier `RebootCamp.exe` sur le PC et double-cliquer. Windows demande les droits administrateur (fenêtre UAC) : répondre Oui.
-Il n'y a rien à installer : .NET est inclus dans le fichier.
+Il n'y a rien à installer : .NET est inclus dans le fichier. On peut le ranger où on veut (Bureau, clé USB…) et le supprimer pour s'en débarrasser.
+
+Rien ne se lance tout seul : chaque analyse part d'un bouton, et rien n'est supprimé ou installé sans un aperçu et une confirmation.
 
 `winget` est nécessaire pour les onglets Logiciels et Composants. Il est fourni avec Windows 11 et les Windows 10 récents ; sinon, installer « Programme d'installation d'application » depuis le Microsoft Store.
 
@@ -37,7 +50,7 @@ Le résultat est `RebootCamp\bin\Release\net10.0-windows\win-x64\publish\RebootC
 
 À l'ouverture, l'appli demande à GitHub s'il existe une version plus récente. Si oui, un encart « Mettre à jour » apparaît dans la barre latérale : un clic télécharge la nouvelle version, vérifie son empreinte, remplace le fichier et relance l'appli.
 
-Pour publier une version : augmenter `<Version>` dans le `.csproj`, lancer `.\publier.ps1`, puis créer sur GitHub une Release étiquetée `vX.Y.Z` avec le `.exe` en pièce jointe (le script le fait tout seul si `gh` est installé). Le dépôt doit être public et renseigné dans `Services/UpdateService.cs`.
+Pour publier une version : augmenter `<Version>` dans le `.csproj`, faire un commit, puis lancer `.\publier.ps1`. Le script fabrique le `.exe`, envoie le code sur GitHub et crée la Release étiquetée `vX.Y.Z` avec le `.exe` en pièce jointe (il faut l'outil `gh`, connecté avec `gh auth login`). Le dépôt doit être public et renseigné dans `Services/UpdateService.cs`.
 
 ## Ce que l'appli ne fait jamais
 
@@ -71,6 +84,7 @@ Si la personne a un compte standard et tape le mot de passe d'un compte administ
 ## Journal
 
 Les actions sont notées dans `%LOCALAPPDATA%\RebootCamp\logs\maintenance.log` (1 Mo maximum, rotation automatique).
+Le bouton « Ouvrir le journal » de l'onglet Extras ouvre ce dossier : en cas de souci, c'est ce fichier qu'il faut envoyer, avec le rapport exporté depuis le même onglet.
 
 ## Organisation du code
 
@@ -85,3 +99,7 @@ RebootCamp/
 ```
 
 Seules dépendances : `CommunityToolkit.Mvvm` et `System.Management`.
+
+## Licence
+
+[MIT](LICENSE) : le code peut être réutilisé librement, sans garantie.

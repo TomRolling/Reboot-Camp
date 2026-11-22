@@ -29,7 +29,10 @@
         </Grid.RowDefinitions>
 
         <DockPanel Margin="0,0,0,18">
-            <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+            <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                <Button Style="{StaticResource GhostButton}" Content="Ouvrir le journal" Margin="0,0,8,0"
+                        Command="{Binding OpenLogCommand}"
+                        ToolTip="Ouvre le dossier où l'appli note tout ce qu'elle fait (fichier maintenance.log) : utile à envoyer si quelque chose ne marche pas" />
                 <Button Style="{StaticResource GhostButton}" Content="Exporter un rapport" HorizontalAlignment="Right"
                         Command="{Binding ExportReportCommand}"
                         ToolTip="Crée un fichier texte qui résume ce PC : pratique à envoyer à quelqu'un qui t'aide à distance" />

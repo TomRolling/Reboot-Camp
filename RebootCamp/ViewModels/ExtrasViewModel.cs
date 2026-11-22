@@ -329,6 +329,23 @@ public sealed partial class ExtrasViewModel : PageViewModel
         }
     }
 
+    // ───────────────────────── Journal ─────────────────────────
+
+    /// <summary>Ouvre dans l'Explorateur le dossier du journal (créé s'il n'existe pas encore).</summary>
+    [RelayCommand]
+    private void OpenLog()
+    {
+        try
+        {
+            Directory.CreateDirectory(Logger.Folder);
+            Open("explorer.exe", $"\"{Logger.Folder}\"");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ReportMessage = "Impossible d'ouvrir le dossier du journal : " + ex.Message;
+        }
+    }
+
     // ───────────────────────── Rapport ─────────────────────────
 
     /// <summary>Écrit un fichier texte résumant le PC : pratique à envoyer à quelqu'un qui dépanne à distance.</summary>
