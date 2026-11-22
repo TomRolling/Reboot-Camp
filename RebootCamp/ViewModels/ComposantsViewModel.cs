@@ -88,7 +88,7 @@ public sealed partial class ComposantsViewModel : PageViewModel
             ? "Tous les composants sont installés"
             : PilotesViewModel.Plural(MissingCount, "composant manquant", "composants manquants");
         SubText = MissingCount == 0
-            ? "Tu peux quand même les mettre à jour un par un."
+            ? "Rien à faire. Pour en mettre un à jour quand même, passe la souris sur sa ligne."
             : "Clique sur « Installer ce qui manque » pour tout installer d'un coup.";
         OnPropertyChanged(nameof(MissingCount));
     }

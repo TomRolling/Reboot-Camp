@@ -42,7 +42,10 @@ public sealed partial class LogicielsViewModel : PageViewModel
     {
         int count = Items.Count(i => i.IsSelected && i.Status != Status.Ok);
         SelectionText = count == 0 ? "Rien de sélectionné" : PilotesViewModel.Plural(count, "logiciel sélectionné", "logiciels sélectionnés");
+        UpgradeCommand.NotifyCanExecuteChanged();   // le bouton « Mettre à jour » se grise quand rien n'est coché
     }
+
+    private bool CanUpgrade() => Items.Any(i => i.IsSelected && i.Status != Status.Ok);
 
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task RingAsync()
@@ -117,7 +120,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
         foreach (var item in Items) item.IsSelected = select;
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanUpgrade))]
     private async Task UpgradeAsync()
     {
         var selected = Items.Where(i => i.IsSelected && i.Status != Status.Ok).ToList();

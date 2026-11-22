@@ -22,6 +22,16 @@
     </UserControl.Resources>
 
     <Grid Margin="32,28,32,24">
+        <Grid.Resources>
+            <!-- Le contenu d'une section reste caché tant qu'elle est en cours de lecture -->
+            <Style x:Key="SectionBody" TargetType="FrameworkElement">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsLoadingSection}" Value="True">
+                        <Setter Property="Visibility" Value="Hidden" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -41,7 +51,7 @@
                 <TextBlock Text="Extras" Style="{StaticResource HeadlineText}" />
                 <TextBlock Text="{Binding ReportMessage, TargetNullValue='', FallbackValue=''}" Style="{StaticResource MutedText}" Margin="0,6,0,0"
                            Visibility="{Binding ReportMessage, Converter={StaticResource EqualsToVis}, ConverterParameter=!}" />
-                <TextBlock Text="Démarrage, infos système, santé des disques, sécurité et outils de réparation."
+                <TextBlock Text="Les outils pour comprendre et dépanner ce PC."
                            Style="{StaticResource MutedText}" Margin="0,6,0,0"
                            Visibility="{Binding ReportMessage, Converter={StaticResource EqualsToVis}, ConverterParameter=''}" />
             </StackPanel>
@@ -67,13 +77,20 @@
             </Button>
         </DockPanel>
 
+        <!-- Pendant la lecture d'une section (une à trois secondes) : un mot plutôt qu'un cadre vide -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="14,10,0,0"
+                    Visibility="{Binding IsLoadingSection, Converter={StaticResource BoolToVis}}">
+            <ContentControl Style="{StaticResource StatusIcon}" Content="{Binding LoadingStatus}" />
+            <TextBlock Text="Lecture en cours…" Style="{StaticResource MutedText}" Margin="10,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+
         <!-- 1. Programmes au démarrage -->
         <Grid Grid.Row="2" Visibility="{Binding SelectedTab, Converter={StaticResource EqualsToVis}, ConverterParameter=0}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+            <ScrollViewer Style="{StaticResource SectionBody}" VerticalScrollBarVisibility="Auto" Focusable="False">
                 <ItemsControl ItemsSource="{Binding StartupEntries}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -109,7 +126,7 @@
         <!-- 2. Infos système -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False"
                       Visibility="{Binding SelectedTab, Converter={StaticResource EqualsToVis}, ConverterParameter=1}">
-            <StackPanel>
+            <StackPanel Style="{StaticResource SectionBody}">
                 <Border Style="{StaticResource Card}">
                     <ItemsControl ItemsSource="{Binding InfoLines}" Focusable="False">
                         <ItemsControl.ItemTemplate>
@@ -149,7 +166,7 @@
         <!-- 3. Santé des disques -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False"
                       Visibility="{Binding SelectedTab, Converter={StaticResource EqualsToVis}, ConverterParameter=2}">
-            <StackPanel>
+            <StackPanel Style="{StaticResource SectionBody}">
                 <ItemsControl ItemsSource="{Binding Disks}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -177,7 +194,7 @@
         <!-- 4. Sécurité (lecture seule) -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False"
                       Visibility="{Binding SelectedTab, Converter={StaticResource EqualsToVis}, ConverterParameter=3}">
-            <StackPanel>
+            <StackPanel Style="{StaticResource SectionBody}">
                 <Border Style="{StaticResource Card}">
                     <ItemsControl ItemsSource="{Binding SecurityLines}" Focusable="False">
                         <ItemsControl.ItemTemplate>

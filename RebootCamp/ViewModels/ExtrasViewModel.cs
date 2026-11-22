@@ -45,6 +45,14 @@ public sealed partial class ExtrasViewModel : PageViewModel
     [ObservableProperty] public partial bool HasSpaceResult { get; set; }
     [ObservableProperty] public partial string ReportMessage { get; set; }
 
+    /// <summary>Vrai pendant la lecture d'une section : l'écran affiche « Lecture en cours… » au lieu d'un cadre vide.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LoadingStatus))]
+    public partial bool IsLoadingSection { get; set; }
+
+    /// <summary>L'icône ne tourne que pendant la lecture (aucune animation au repos).</summary>
+    public Status LoadingStatus => IsLoadingSection ? Status.Working : Status.None;
+
     /// <param name="scanSummary">Fournit les résultats des autres onglets pour le rapport.</param>
     public ExtrasViewModel(Func<IEnumerable<string>> scanSummary) : base(
         "Extras", "", "Extras", "Démarrage, infos système, santé des disques, sécurité et outils de réparation.")
@@ -69,6 +77,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
     {
         if (tab > SecurityTab || _isLoading || (!force && _loadedTabs.Contains(tab))) return;
         _isLoading = true;
+        IsLoadingSection = true;
         try
         {
             switch (tab)
@@ -114,6 +123,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
         finally
         {
             _isLoading = false;
+            IsLoadingSection = false;
         }
 
         // Si l'utilisateur a changé de section pendant le chargement, on charge celle qu'il regarde maintenant.

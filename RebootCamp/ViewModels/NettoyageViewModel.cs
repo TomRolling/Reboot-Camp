@@ -49,7 +49,10 @@ public sealed partial class NettoyageViewModel : PageViewModel
         long total = Categories.Where(c => c.IsSelected).Sum(c => c.Size);
         int count = Categories.Count(c => c.IsSelected);
         SelectionText = count == 0 ? "Rien de sélectionné" : $"Sélection : {Format.Size(total)}";
+        CleanCommand.NotifyCanExecuteChanged();   // le bouton « Nettoyer » se grise quand rien n'est coché
     }
+
+    private bool CanClean() => Categories.Any(c => c.IsSelected && c.IsAvailable);
 
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task RingAsync()
@@ -108,7 +111,7 @@ public sealed partial class NettoyageViewModel : PageViewModel
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanClean))]
     private async Task CleanAsync()
     {
         var selected = Categories.Where(c => c.IsSelected && c.IsAvailable).ToList();

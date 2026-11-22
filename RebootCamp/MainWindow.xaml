@@ -49,8 +49,16 @@
         <!-- Barre latérale -->
         <Border Grid.Column="0" Background="{StaticResource SidebarBackgroundBrush}">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Reboot Camp" FontSize="18" FontWeight="SemiBold"
-                           Margin="26,26,24,22" />
+                <!-- Logo (le même anneau que l'icône du programme, dessiné ici pour rester net à toutes les tailles) + nom -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="24,24,20,20">
+                    <Grid Width="24" Height="24" VerticalAlignment="Center">
+                        <Ellipse Stroke="{StaticResource AccentBrush}" StrokeThickness="3.2" />
+                        <Path Data="M 7.4,12.4 L 10.6,15.6 L 16.8,8.8" Stroke="{StaticResource TextBrush}" StrokeThickness="2.2"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                    </Grid>
+                    <TextBlock Text="Reboot Camp" FontSize="18" FontWeight="SemiBold" Margin="11,0,0,1"
+                               VerticalAlignment="Center" />
+                </StackPanel>
                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding Version, StringFormat=Version {0}}"
                            Margin="26,0,24,18" FontSize="12"
                            Foreground="{StaticResource TextMutedBrush}" />

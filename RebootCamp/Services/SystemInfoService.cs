@@ -27,7 +27,7 @@ public static class SystemInfoService
 
         foreach (var pc in Query(@"root\cimv2", "SELECT Manufacturer, Model, TotalPhysicalMemory FROM Win32_ComputerSystem"))
         {
-            lines.Add(new("Ordinateur", $"{Text(pc, "Manufacturer")} {Text(pc, "Model")}".Trim()));
+            lines.Add(new("Ordinateur", ComputerName(Text(pc, "Manufacturer"), Text(pc, "Model"))));
             if (pc["TotalPhysicalMemory"] is { } memory)
                 lines.Add(new("Mémoire (RAM)", Format.Size(Convert.ToInt64(memory))));
         }
@@ -35,10 +35,59 @@ public static class SystemInfoService
         foreach (var cpu in Query(@"root\cimv2", "SELECT Name, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor"))
             lines.Add(new("Processeur", $"{Text(cpu, "Name")} ({cpu["NumberOfCores"]} cœurs, {cpu["NumberOfLogicalProcessors"]} threads)"));
 
-        foreach (var gpu in Query(@"root\cimv2", "SELECT Name, DriverVersion FROM Win32_VideoController"))
-            lines.Add(new("Carte graphique", $"{Text(gpu, "Name")} (pilote {Text(gpu, "DriverVersion")})"));
+        // Les vraies cartes d'abord ; les écrans virtuels (émulateurs, bureau à distance) à la fin.
+        var cards = Query(@"root\cimv2", "SELECT Name, DriverVersion FROM Win32_VideoController")
+            .Select(gpu => (Name: Text(gpu, "Name"), Driver: Text(gpu, "DriverVersion")))
+            .OrderBy(card => card.Name.Contains("Virtual", StringComparison.OrdinalIgnoreCase)
+                             || card.Name.Contains("Remote", StringComparison.OrdinalIgnoreCase)
+                             || card.Name.Contains("Basic Display", StringComparison.OrdinalIgnoreCase));
+        foreach (var card in cards)
+            lines.Add(new("Carte graphique", $"{card.Name} (pilote {card.Driver})"));
 
         return lines;
+    }
+
+    /// <summary>
+    /// Nom du PC. Les PC assemblés gardent le texte par défaut de la carte mère (« System Product Name »,
+    /// « To Be Filled By O.E.M. ») : on affiche alors le modèle de la carte mère, qui veut dire quelque chose.
+    /// </summary>
+    internal static string ComputerName(string manufacturer, string model)
+    {
+        if (!IsPlaceholder(model))
+            return IsPlaceholder(manufacturer) ? model : $"{manufacturer} {model}".Trim();
+
+        foreach (var board in Query(@"root\cimv2", "SELECT Manufacturer, Product FROM Win32_BaseBoard"))
+        {
+            string name = $"{ShortBrand(Text(board, "Manufacturer"))} {Text(board, "Product")}".Trim();
+            if (name.Length > 0 && !IsPlaceholder(Text(board, "Product")))
+                return $"PC assemblé (carte mère {name})";
+        }
+        return "PC assemblé";
+    }
+
+    /// <summary>« ASUSTeK COMPUTER INC. » → « ASUS », « Micro-Star International Co., Ltd. » → « MSI »…</summary>
+    internal static string ShortBrand(string manufacturer)
+    {
+        string text = manufacturer.Trim();
+        if (text.StartsWith("ASUS", StringComparison.OrdinalIgnoreCase)) return "ASUS";
+        if (text.StartsWith("Micro-Star", StringComparison.OrdinalIgnoreCase)) return "MSI";
+        if (text.StartsWith("Gigabyte", StringComparison.OrdinalIgnoreCase)) return "Gigabyte";
+
+        // Sinon on retire seulement la forme juridique en fin de nom.
+        foreach (string suffix in (string[])[" Co., Ltd.", " Corporation", " Corp.", ", Inc.", " Inc.", " INC.", " Ltd."])
+            if (text.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                return text[..^suffix.Length].Trim();
+        return text;
+    }
+
+    internal static bool IsPlaceholder(string value)
+    {
+        string text = value.Trim();
+        return text.Length == 0
+               || text.Equals("System Product Name", StringComparison.OrdinalIgnoreCase)
+               || text.Equals("System manufacturer", StringComparison.OrdinalIgnoreCase)
+               || text.Equals("Default string", StringComparison.OrdinalIgnoreCase)
+               || text.Contains("O.E.M.", StringComparison.OrdinalIgnoreCase);
     }
 
     public static List<VolumeInfo> GetVolumes()

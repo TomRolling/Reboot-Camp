@@ -68,7 +68,7 @@
                 </ItemsControl.GroupStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource RowBorder}" Padding="14,8">
+                        <Border x:Name="Row" Style="{StaticResource RowBorder}" Padding="14,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="30" />
@@ -80,13 +80,26 @@
                                     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="{Binding Detail}" Style="{StaticResource SmallMutedText}" />
                                 </StackPanel>
-                                <Button Grid.Column="2" Style="{StaticResource GhostButton}" Padding="12,5" FontSize="12.5"
+                                <Button x:Name="RowAction" Grid.Column="2" Style="{StaticResource GhostButton}" Padding="12,5" FontSize="12.5"
                                         Content="{Binding ActionLabel}" VerticalAlignment="Center"
                                         Command="{Binding DataContext.InstallOneCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"
                                         Visibility="{Binding DataContext.IsBusy, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
                             </Grid>
                         </Border>
+                        <!-- « Installer » reste toujours visible ; « Mettre à jour » (composant déjà là) n'apparaît
+                             qu'au survol de la ligne ou au clavier, pour ne pas aligner quinze boutons identiques. -->
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsInstalled}" Value="True">
+                                <Setter TargetName="RowAction" Property="Opacity" Value="0" />
+                            </DataTrigger>
+                            <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RowAction" Property="Opacity" Value="1" />
+                            </Trigger>
+                            <Trigger SourceName="RowAction" Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="RowAction" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

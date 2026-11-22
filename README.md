@@ -3,6 +3,8 @@
 Outil de maintenance Windows : un seul `.exe`, rien qui tourne en arrière-plan, rien de supprimé sans accord.
 Fonctionne sur Windows 10 et Windows 11 (64 bits), sans rien installer avant.
 
+![L'écran d'accueil de Reboot Camp après une analyse](docs/capture.png)
+
 ## Télécharger
 
 **[Télécharger RebootCamp.exe](https://github.com/TomRolling/Reboot-Camp/releases/latest/download/RebootCamp.exe)** (dernière version, environ 60 Mo)

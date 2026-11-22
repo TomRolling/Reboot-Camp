@@ -58,10 +58,23 @@
                 </Grid.RowDefinitions>
 
                 <DockPanel>
-                    <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Links}" Margin="14,0,0,0" Focusable="False"
-                                  ItemTemplate="{StaticResource LinkButton}" ItemsPanel="{StaticResource HorizontalPanel}" />
-                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding UpdatesMessage}" Style="{StaticResource MutedText}"
-                               TextWrapping="Wrap" Margin="14,10" LineHeight="22" />
+                    <!-- Explications et boutons du fabricant : sous la liste, ou en haut de la page quand il n'y a rien à installer -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="DockPanel.Dock" Value="Bottom" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Updates.Count}" Value="0">
+                                        <Setter Property="DockPanel.Dock" Value="Top" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="{Binding UpdatesMessage}" Style="{StaticResource MutedText}"
+                                   TextWrapping="Wrap" Margin="14,10" LineHeight="22" />
+                        <ItemsControl ItemsSource="{Binding Links}" Margin="14,0,0,0" Focusable="False"
+                                      ItemTemplate="{StaticResource LinkButton}" ItemsPanel="{StaticResource HorizontalPanel}" />
+                    </StackPanel>
 
                     <ListBox Style="{StaticResource RowList}" ItemsSource="{Binding Updates}" VerticalAlignment="Top"
                              Visibility="{Binding Updates.Count, Converter={StaticResource EqualsToVis}, ConverterParameter=!0}">
