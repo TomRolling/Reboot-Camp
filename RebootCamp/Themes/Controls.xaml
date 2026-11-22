@@ -217,6 +217,11 @@
                             </Ellipse>
 
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Coche (ou triangle) affichée seulement quand une action vient de se terminer -->
+                                <TextBlock x:Name="OutcomeGlyph" HorizontalAlignment="Center" FontSize="17" Margin="0,0,0,2"
+                                           FontFamily="{StaticResource IconFont}" Visibility="Collapsed"
+                                           Text="{Binding Outcome, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource StatusGlyph}}"
+                                           Foreground="{Binding Outcome, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource StatusBrush}}" />
                                 <TextBlock x:Name="MainText" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"
                                            Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" />
                                 <TextBlock x:Name="CaptionText" HorizontalAlignment="Center" FontSize="7.6" Margin="0,2,0,0"
@@ -255,6 +260,39 @@
                             </Trigger.ExitActions>
                         </Trigger>
 
+                        <!-- Action terminée : anneau vert (tout s'est bien passé) ou orange (une partie a échoué), coche,
+                             et un seul battement pour attirer l'œil. Rien ne tourne ensuite. -->
+                        <Trigger Property="Outcome" Value="{x:Static m:Status.Ok}">
+                            <Setter TargetName="IdleRing" Property="Stroke" Value="{StaticResource OkBrush}" />
+                            <Setter TargetName="OutcomeGlyph" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="MainText" Property="FontSize" Value="9.5" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" From="1" To="1.1" Duration="0:0:0.18" AutoReverse="True"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" />
+                                        <DoubleAnimation Storyboard.TargetName="Root" From="1" To="1.1" Duration="0:0:0.18" AutoReverse="True"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                        </Trigger>
+                        <Trigger Property="Outcome" Value="{x:Static m:Status.Warning}">
+                            <Setter TargetName="IdleRing" Property="Stroke" Value="{StaticResource WarningBrush}" />
+                            <Setter TargetName="OutcomeGlyph" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="MainText" Property="FontSize" Value="9.5" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" From="1" To="1.1" Duration="0:0:0.18" AutoReverse="True"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" />
+                                        <DoubleAnimation Storyboard.TargetName="Root" From="1" To="1.1" Duration="0:0:0.18" AutoReverse="True"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                        </Trigger>
+
                         <!-- Pendant une opération : l'anneau plein laisse place à l'arc et au trait qui tourne.
                              L'animation est arrêtée dès que l'opération se termine (rien ne tourne au repos). -->
                         <Trigger Property="IsBusy" Value="True">
@@ -287,7 +325,7 @@
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
             <c:RingButton Width="190" Height="190"
                           Command="{Binding RingCommand}" IsBusy="{Binding IsBusy}" Progress="{Binding Progress}"
-                          Content="{Binding RingText}" Caption="{Binding RingCaption}" />
+                          Content="{Binding RingText}" Caption="{Binding RingCaption}" Outcome="{Binding Outcome}" />
             <TextBlock Text="{Binding Headline}" Style="{StaticResource HeadlineText}"
                        HorizontalAlignment="Center" TextAlignment="Center" Margin="0,26,0,0" />
             <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"

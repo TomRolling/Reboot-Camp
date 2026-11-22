@@ -87,16 +87,22 @@ public static partial class SoftwareUpdateService
         return updates;
     }
 
-    public static async Task<(bool Ok, string Message)> UpgradeAsync(SoftwareUpdate update, IProgress<string> output, CancellationToken token)
+    /// <returns>
+    /// « Blocked » est vrai quand winget ne pourra pas faire cette mise à jour sur ce PC, même en réessayant :
+    /// le message explique alors comment la faire autrement.
+    /// </returns>
+    public static async Task<(bool Ok, string Message, bool Blocked)> UpgradeAsync(SoftwareUpdate update, IProgress<string> output, CancellationToken token)
     {
         var (outcome, code) = await Winget.RunAsync("upgrade", update.Id, update.Name, output, token, "--include-unknown");
         return outcome switch
         {
-            WingetOutcome.Done => (true, "Mis à jour"),
-            WingetOutcome.AlreadyUpToDate => (true, "Déjà à jour"),
-            WingetOutcome.DoneAfterRestart => (true, "Mis à jour, actif après un redémarrage"),
-            WingetOutcome.RestartThenRetry => (false, "Redémarre le PC, puis relance la mise à jour."),
-            _ => (false, $"Échec (code 0x{code:X8}). Ferme le logiciel s'il est ouvert, puis réessaie."),
+            WingetOutcome.Done => (true, "Mis à jour", false),
+            WingetOutcome.AlreadyUpToDate => (true, "Déjà à jour", false),
+            WingetOutcome.DoneAfterRestart => (true, "Mis à jour, actif après un redémarrage", false),
+            WingetOutcome.RestartThenRetry => (false, "Redémarre le PC, puis relance la mise à jour.", false),
+            _ => (false,
+                Winget.Explain(code) ?? $"Échec (code 0x{code:X8}). Ferme le logiciel s'il est ouvert, puis réessaie.",
+                Winget.IsBlocked(code)),
         };
     }
 }

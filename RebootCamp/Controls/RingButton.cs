@@ -24,6 +24,19 @@ public class RingButton : Button
     public static readonly DependencyProperty CaptionProperty = DependencyProperty.Register(
         nameof(Caption), typeof(string), typeof(RingButton), new PropertyMetadata(""));
 
+    public static readonly DependencyProperty OutcomeProperty = DependencyProperty.Register(
+        nameof(Outcome), typeof(Models.Status), typeof(RingButton), new PropertyMetadata(Models.Status.None));
+
+    /// <summary>
+    /// Résultat de la dernière action : « Ok » colore l'anneau en vert avec une coche, « Warning » en orange.
+    /// « None » = aspect normal.
+    /// </summary>
+    public Models.Status Outcome
+    {
+        get => (Models.Status)GetValue(OutcomeProperty);
+        set => SetValue(OutcomeProperty, value);
+    }
+
     // Valeur intermédiaire animée : c'est elle qui fait avancer l'arc en douceur.
     private static readonly DependencyProperty AnimatedProgressProperty = DependencyProperty.Register(
         "AnimatedProgress", typeof(double), typeof(RingButton), new PropertyMetadata(0.0, OnAnimatedProgressChanged));

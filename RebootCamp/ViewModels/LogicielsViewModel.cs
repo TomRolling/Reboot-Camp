@@ -13,6 +13,10 @@ public sealed partial class LogicielsViewModel : PageViewModel
     // met un moment à remarquer la nouvelle version (ou si le logiciel doit redémarrer pour l'afficher).
     private readonly HashSet<string> _updatedThisSession = new(StringComparer.OrdinalIgnoreCase);
 
+    // Logiciels que winget n'a pas pu mettre à jour sur ce PC (avec l'explication) : une nouvelle analyse les
+    // montre encore, mais décochés et avec leur explication, pour ne pas relancer un échec certain.
+    private readonly Dictionary<string, string> _blockedThisSession = new(StringComparer.OrdinalIgnoreCase);
+
     public ObservableCollection<SoftwareUpdate> Items { get; } = [];
     public LogViewModel Log { get; } = new();
 
@@ -80,6 +84,12 @@ public sealed partial class LogicielsViewModel : PageViewModel
             updates.RemoveAll(u => _updatedThisSession.Contains(u.Id));
             foreach (var update in updates)
             {
+                if (_blockedThisSession.TryGetValue(update.Id, out string? reason))
+                {
+                    update.IsSelected = false;
+                    update.Status = Status.Warning;
+                    update.Detail = reason;
+                }
                 update.PropertyChanged += (_, e) =>
                 {
                     if (e.PropertyName is nameof(SoftwareUpdate.IsSelected) or nameof(SoftwareUpdate.Status)) UpdateSelection();
@@ -133,7 +143,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
         ShowLog = true;
         Log.Clear();
         var output = new Progress<string>(Log.Add);
-        int succeeded = 0, failed = 0;
+        int succeeded = 0, failed = 0, blocked = 0;
         try
         {
             for (int i = 0; i < selected.Count; i++)
@@ -143,18 +153,27 @@ public sealed partial class LogicielsViewModel : PageViewModel
                 item.Status = Status.Working;
                 item.Detail = "Mise à jour en cours…";
 
-                var (ok, message) = await SoftwareUpdateService.UpgradeAsync(item, output, token);
+                var (ok, message, isBlocked) = await SoftwareUpdateService.UpgradeAsync(item, output, token);
 
-                item.Status = ok ? Status.Ok : Status.Error;
+                // « Bloqué » : winget ne peut pas faire cette mise à jour ici, réessayer ne changera rien.
+                // La ligne passe à l'orange avec l'explication, et se décoche pour ne pas être relancée par erreur.
+                item.Status = ok ? Status.Ok : isBlocked ? Status.Warning : Status.Error;
                 item.Detail = message;
-                if (ok) { succeeded++; item.IsSelected = false; _updatedThisSession.Add(item.Id); } else failed++;
+                if (ok) { succeeded++; _updatedThisSession.Add(item.Id); }
+                else if (isBlocked) blocked++;
+                else failed++;
+                if (ok || isBlocked) item.IsSelected = false;
+                if (isBlocked) _blockedThisSession[item.Id] = message;
             }
 
             Report(100, "Terminé.");
-            Headline = failed == 0
-                ? PilotesViewModel.Plural(succeeded, "logiciel mis à jour", "logiciels mis à jour")
-                : $"{PilotesViewModel.Plural(succeeded, "logiciel mis à jour", "logiciels mis à jour")}, {failed} en échec";
-            SubText = failed == 0 ? "Tout s'est bien passé." : "Regarde le journal en bas de l'écran pour comprendre pourquoi.";
+            string done = PilotesViewModel.Plural(succeeded, "logiciel mis à jour", "logiciels mis à jour");
+            int notDone = failed + blocked;
+            Headline = notDone == 0 ? $"Terminé : {done}" : $"Terminé : {done}, {notDone} non mis à jour";
+            SubText = notDone == 0 ? "Tout s'est bien passé."
+                : failed == 0 ? "winget ne peut pas mettre à jour ceux marqués en orange : l'explication est sous leur nom."
+                : "L'explication est sous le nom de chaque logiciel ; le détail est dans le journal en bas de l'écran.";
+            MarkDone(allGood: notDone == 0);
             OnPropertyChanged(nameof(UpdateCount)); OnPropertyChanged(nameof(HasPendingUpdates));
         }
         catch (OperationCanceledException)

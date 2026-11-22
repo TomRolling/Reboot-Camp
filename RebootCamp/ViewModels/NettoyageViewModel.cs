@@ -162,9 +162,10 @@ public sealed partial class NettoyageViewModel : PageViewModel
             }
 
             Report(100, "Terminé.");
-            Headline = simulate ? $"Simulation : {Format.Size(freed)} seraient libérés" : $"{Format.Size(freed)} libérés";
+            Headline = simulate ? $"Simulation terminée : {Format.Size(freed)} seraient libérés" : $"Nettoyage terminé : {Format.Size(freed)} libérés";
             SubText = simulate ? "Rien n'a été supprimé. Décoche « Mode simulation » pour nettoyer vraiment."
-                : "Nettoyage terminé. Les fichiers en cours d'utilisation ont été laissés en place.";
+                : "Les fichiers en cours d'utilisation ont été laissés en place.";
+            MarkDone(allGood: selected.All(c => c.Status == Status.Ok));
             if (!simulate) RecoverableBytes = 0;
         }
         catch (OperationCanceledException)

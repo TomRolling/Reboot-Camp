@@ -23,7 +23,7 @@ Toutes les versions sont sur la page [Releases](https://github.com/TomRolling/Re
 | **Pilotes** | Liste les pilotes, repère les périphériques en erreur, installe les mises à jour de Windows Update et le dernier pilote graphique NVIDIA. |
 | **Logiciels** | Met à jour les logiciels installés (navigateur, Discord, VLC…) avec `winget`. |
 | **Nettoyage** | Calcule l'espace récupérable, montre un aperçu, supprime seulement ce qui est coché. |
-| **Composants** | Vérifie DirectX, Visual C++ et .NET, et les installe avec `winget`. |
+| **Composants** | Vérifie DirectX, Visual C++ et .NET : manquant, à mettre à jour ou à jour. Installe ou met à jour la sélection avec `winget`. |
 | **Extras** | Démarrage, infos système et batterie, santé des disques, sécurité, espace disque, réparation, rapport à exporter. |
 
 ## Utilisation

@@ -315,8 +315,9 @@ public sealed partial class PilotesViewModel : PageViewModel
             }
 
             Headline = failed == 0
-                ? Plural(succeeded, "pilote installé", "pilotes installés")
-                : $"{Plural(succeeded, "pilote installé", "pilotes installés")}, {failed} en échec";
+                ? $"Terminé : {Plural(succeeded, "pilote installé", "pilotes installés")}"
+                : $"Terminé : {Plural(succeeded, "pilote installé", "pilotes installés")}, {failed} en échec";
+            if (!cancelled) MarkDone(allGood: failed == 0);
             SubText = failed > 0 && UpdatesMessage.Length > 0 ? UpdatesMessage
                 : reboot ? "Redémarre le PC pour terminer l'installation."
                 : cancelled ? "Installation interrompue à ta demande."

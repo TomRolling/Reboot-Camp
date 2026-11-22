@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RebootCamp.Models;
 using RebootCamp.Services;
 
 namespace RebootCamp.ViewModels;
@@ -32,6 +33,15 @@ public abstract partial class PageViewModel : ObservableObject
     // Chaque onglet a le sien, pour qu'on sache toujours sur quelle page on est.
     private readonly string _idleRingText, _idleRingCaption;
 
+    /// <summary>
+    /// Résultat de la dernière action (nettoyage, installation, mise à jour) : tant qu'il n'est pas « None »,
+    /// le bouton rond passe au vert (ou à l'orange) avec une coche et « TERMINÉ », pour qu'on voie que c'est fini.
+    /// </summary>
+    [ObservableProperty] public partial Status Outcome { get; set; }
+
+    private Status _pendingOutcome;
+    private bool _nested;
+
     protected PageViewModel(string title, string icon, string headline, string subText,
         string ringText = "ANALYSER", string ringCaption = "")
     {
@@ -52,6 +62,9 @@ public abstract partial class PageViewModel : ObservableObject
     {
         _operation?.Dispose();
         _operation = AppLifetime.CreateOperation(external);
+        _nested = external.CanBeCanceled;   // lancée par l'accueil (« Analyser tout ») : c'est lui qui signalera la fin
+        _pendingOutcome = Status.None;
+        Outcome = Status.None;
         Headline = headline;
         IsBusy = true;
         Progress = -1;
@@ -68,12 +81,24 @@ public abstract partial class PageViewModel : ObservableObject
         SubText = subText;
     }
 
+    /// <summary>
+    /// À appeler quand une action est allée au bout (pas pour une simple analyse, ni après une annulation) :
+    /// à la fin de l'opération, le bouton rond affichera « TERMINÉ ».
+    /// </summary>
+    /// <param name="allGood">Faux si une partie a échoué : le bouton passe à l'orange au lieu du vert.</param>
+    protected void MarkDone(bool allGood = true) => _pendingOutcome = allGood ? Status.Ok : Status.Warning;
+
     protected void EndOperation()
     {
         IsBusy = false;
         Progress = -1;
-        RingText = _idleRingText;
-        RingCaption = _idleRingCaption;
+        Outcome = _pendingOutcome;
+        bool done = Outcome != Status.None;
+        RingText = done ? "TERMINÉ" : _idleRingText;
+        RingCaption = done ? "nouvelle analyse" : _idleRingCaption;
+
+        // Si la fenêtre n'est pas au premier plan, son bouton clignote dans la barre des tâches.
+        if (!_nested) Attention.FlashIfInBackground();
 
         // Si l'opération a besoin d'un redémarrage, c'est maintenant qu'on pose la question.
         RestartService.ProposeIfNeeded();

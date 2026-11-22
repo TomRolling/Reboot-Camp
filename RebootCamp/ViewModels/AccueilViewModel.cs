@@ -164,10 +164,12 @@ public sealed partial class AccueilViewModel : PageViewModel
 
         if (_composants.HasScanned)
         {
-            int missing = _composants.MissingCount;
-            ComposantsCard.Value = missing.ToString();
-            ComposantsCard.Detail = missing == 1 ? "manquant" : "manquants";
-            ComposantsCard.Status = missing > 0 ? Status.Warning : Status.Ok;
+            int missing = _composants.MissingCount, updates = _composants.UpdateCount;
+            ComposantsCard.Value = (missing + updates).ToString();
+            ComposantsCard.Detail = updates == 0 ? (missing == 1 ? "manquant" : "manquants")
+                : missing == 0 ? (updates == 1 ? "mise à jour" : "mises à jour")
+                : "manquants ou anciens";
+            ComposantsCard.Status = missing > 0 ? Status.Error : updates > 0 ? Status.Warning : Status.Ok;
         }
         else if (ComposantsCard.Status == Status.Working) ComposantsCard.Status = Status.None;
     }
@@ -190,8 +192,9 @@ public sealed partial class AccueilViewModel : PageViewModel
             yield return $"Nettoyage : {Format.Size(_nettoyage.RecoverableBytes)} récupérables";
         if (_composants.HasScanned)
         {
-            yield return $"Composants : {_composants.MissingCount} manquant(s)";
+            yield return $"Composants : {_composants.MissingCount} manquant(s), {_composants.UpdateCount} à mettre à jour";
             foreach (var item in _composants.Items.Where(i => !i.IsInstalled)) yield return $"  - manquant : {item.Name}";
+            foreach (var item in _composants.Items.Where(i => i.HasUpdate)) yield return $"  - à mettre à jour : {item.Name}";
         }
     }
 }

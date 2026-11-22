@@ -32,6 +32,7 @@ public partial class MainWindow : Window
         source?.AddHook(BlockResizeBorders);
         source?.AddHook(HoldRestartDuringInstall);
         RestartService.Attach(handle, AskToRestart);
+        Attention.Attach(handle);
         int enabled = 1;
         // Windows 11 et Windows 10 récent utilisent l'attribut 20 ; les Windows 10 d'avant 2020 utilisaient le 19.
         // Si les deux échouent (Windows encore plus ancien), la barre de titre reste claire : sans gravité.

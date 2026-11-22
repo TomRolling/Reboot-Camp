@@ -35,6 +35,43 @@ public static class Winget
         _ => WingetOutcome.Failed,
     };
 
+    // Échecs que winget explique lui-même (même documentation).
+    private const int DownloadFailed = unchecked((int)0x8A150008);
+    private const int InstallerHashMismatch = unchecked((int)0x8A150011);   // « The installer file's hash does not match the manifest »
+    private const int PackageIsPinned = unchecked((int)0x8A150068);
+    private const int TechnologyMismatch = unchecked((int)0x8A15008E);      // « …uses a different install technology than the current installation »
+    private const int PackageInUse = unchecked((int)0x8A150101);
+    private const int InstallInProgress = unchecked((int)0x8A150102);
+    private const int FileInUse = unchecked((int)0x8A150103);
+    private const int DiskFull = unchecked((int)0x8A150105);
+    private const int NoNetwork = unchecked((int)0x8A150107);
+    private const int InUseByApplication = unchecked((int)0x8A150111);
+    private const int UpgradeNotSupported = unchecked((int)0x8A150114);
+
+    /// <summary>
+    /// Vrai quand recommencer ne servira à rien : winget ne peut pas faire cette mise à jour sur ce PC,
+    /// il faut passer par le logiciel lui-même ou par son éditeur.
+    /// </summary>
+    public static bool IsBlocked(int exitCode) =>
+        exitCode is InstallerHashMismatch or TechnologyMismatch or UpgradeNotSupported or PackageIsPinned;
+
+    /// <summary>Explication en clair d'un échec connu, ou null si le code ne dit rien d'utile.</summary>
+    public static string? Explain(int exitCode) => exitCode switch
+    {
+        InstallerHashMismatch =>
+            "L'éditeur a changé son fichier d'installation et winget ne l'a pas encore vérifié : par sécurité, rien n'est installé. " +
+            "Mets-le à jour depuis le logiciel lui-même, ou réessaie dans quelques jours.",
+        TechnologyMismatch or UpgradeNotSupported =>
+            "La nouvelle version s'installe autrement que celle du PC : winget ne peut pas la poser par-dessus. " +
+            "Mets-le à jour depuis le logiciel lui-même, ou désinstalle-le puis réinstalle-le.",
+        PackageIsPinned => "Ce logiciel est verrouillé sur sa version actuelle dans winget (paquet épinglé).",
+        PackageInUse or FileInUse or InUseByApplication => "Le logiciel est ouvert : ferme-le, puis réessaie.",
+        InstallInProgress => "Une autre installation est déjà en cours sur le PC. Réessaie dans un instant.",
+        DiskFull => "Il n'y a plus assez de place sur le disque.",
+        DownloadFailed or NoNetwork => "Le téléchargement a échoué : vérifie la connexion Internet, puis réessaie.",
+        _ => null,
+    };
+
     /// <param name="verb">« install » ou « upgrade ».</param>
     /// <param name="displayName">Nom montré à l'utilisateur si un redémarrage est nécessaire.</param>
     /// <param name="extraOptions">Options propres à l'appelant (ex. « --include-unknown »).</param>

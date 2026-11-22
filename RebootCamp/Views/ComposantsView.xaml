@@ -17,34 +17,27 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Avant la première vérification : juste le gros bouton, au centre -->
-        <ContentControl Grid.RowSpan="4" Content="{Binding}" ContentTemplate="{StaticResource StartHero}" Focusable="False"
+        <ContentControl Grid.RowSpan="5" Content="{Binding}" ContentTemplate="{StaticResource StartHero}" Focusable="False"
                         Visibility="{Binding HasScanned, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
 
-        <!-- Après la vérification : en-tête compact (bouton rond + résultat + action principale) -->
+        <!-- Après la vérification : en-tête compact (bouton rond + résultat) -->
         <Grid Margin="0,0,0,22" Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <c:RingButton Width="128" Height="128"
                           Command="{Binding RingCommand}" IsBusy="{Binding IsBusy}" Progress="{Binding Progress}"
-                          Content="{Binding RingText}" Caption="{Binding RingCaption}" />
-            <StackPanel Grid.Column="1" Margin="26,0,16,0" VerticalAlignment="Center">
+                          Content="{Binding RingText}" Caption="{Binding RingCaption}" Outcome="{Binding Outcome}" />
+            <StackPanel Grid.Column="1" Margin="26,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Headline}" Style="{StaticResource HeadlineText}" />
                 <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
                            Margin="0,6,0,0" MaxHeight="40" />
             </StackPanel>
-            <!-- Visible seulement s'il manque quelque chose et que rien n'est en cours -->
-            <Grid Grid.Column="2" VerticalAlignment="Center"
-                  Visibility="{Binding IsBusy, Converter={StaticResource EqualsToVis}, ConverterParameter=False}">
-                <Button Style="{StaticResource PrimaryButton}" Content="Installer ce qui manque"
-                        Command="{Binding InstallMissingCommand}"
-                        Visibility="{Binding MissingCount, Converter={StaticResource EqualsToVis}, ConverterParameter=!0}" />
-            </Grid>
         </Grid>
 
         <!-- Avertissement si winget est absent -->
@@ -53,6 +46,8 @@
             <TextBlock Text="{Binding WingetWarning}" TextWrapping="Wrap" />
         </Border>
 
+        <!-- Une ligne par composant. Rouge = manquant, orange = mise à jour disponible, vert = à jour.
+             Seules les lignes où il y a quelque chose à faire ont une case à cocher. -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False"
                       Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
             <ItemsControl ItemsSource="{Binding Source={StaticResource GroupedItems}}" Focusable="False">
@@ -68,45 +63,55 @@
                 </ItemsControl.GroupStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border x:Name="Row" Style="{StaticResource RowBorder}" Padding="14,8">
+                        <Border Style="{StaticResource RowBorder}" Padding="14,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="30" />
+                                    <ColumnDefinition Width="20" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="30" />
                                 </Grid.ColumnDefinitions>
-                                <ContentControl Style="{StaticResource StatusIcon}" Content="{Binding Status}" HorizontalAlignment="Left" />
-                                <StackPanel Grid.Column="1" Margin="6,0,14,0">
+                                <CheckBox IsChecked="{Binding IsSelected}"
+                                          Visibility="{Binding NeedsAction, Converter={StaticResource BoolToVis}}" />
+                                <StackPanel Grid.Column="1" Margin="14,0">
                                     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource SmallMutedText}" />
+                                    <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" FontSize="12" Margin="0,2,0,0"
+                                               Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" />
                                 </StackPanel>
-                                <Button x:Name="RowAction" Grid.Column="2" Style="{StaticResource GhostButton}" Padding="12,5" FontSize="12.5"
-                                        Content="{Binding ActionLabel}" VerticalAlignment="Center"
-                                        Command="{Binding DataContext.InstallOneCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding}"
-                                        Visibility="{Binding DataContext.IsBusy, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
+                                <ContentControl Grid.Column="2" Style="{StaticResource StatusIcon}" Content="{Binding Status}"
+                                                HorizontalAlignment="Right" />
                             </Grid>
                         </Border>
-                        <!-- « Installer » reste toujours visible ; « Mettre à jour » (composant déjà là) n'apparaît
-                             qu'au survol de la ligne ou au clavier, pour ne pas aligner quinze boutons identiques. -->
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsInstalled}" Value="True">
-                                <Setter TargetName="RowAction" Property="Opacity" Value="0" />
-                            </DataTrigger>
-                            <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
-                                <Setter TargetName="RowAction" Property="Opacity" Value="1" />
-                            </Trigger>
-                            <Trigger SourceName="RowAction" Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="RowAction" Property="Opacity" Value="1" />
-                            </Trigger>
-                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
 
+        <!-- Barre d'action : visible seulement s'il reste quelque chose à installer ou à mettre à jour et que rien n'est en cours -->
+        <DockPanel Grid.Row="3" Margin="0,14,0,0" LastChildFill="False">
+            <DockPanel.Style>
+                <Style TargetType="DockPanel">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding HasPendingActions}" Value="True" />
+                                <Condition Binding="{Binding IsBusy}" Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DockPanel.Style>
+            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Installer la sélection"
+                    Command="{Binding InstallSelectedCommand}" MinWidth="130" />
+            <TextBlock DockPanel.Dock="Right" Text="{Binding SelectionText}" VerticalAlignment="Center" Margin="0,0,18,0"
+                       Foreground="{StaticResource TextMutedBrush}" />
+            <Button DockPanel.Dock="Left" Style="{StaticResource GhostButton}" Content="Tout cocher / décocher"
+                    Command="{Binding SelectAllCommand}" />
+        </DockPanel>
+
         <!-- Sortie de winget en direct -->
-        <TextBox Grid.Row="3" Style="{StaticResource LogBox}" Text="{Binding Log.Text, Mode=OneWay}" Height="120" Margin="0,14,0,0"
+        <TextBox Grid.Row="4" Style="{StaticResource LogBox}" Text="{Binding Log.Text, Mode=OneWay}" Height="120" Margin="0,14,0,0"
                  Visibility="{Binding ShowLog, Converter={StaticResource BoolToVis}}" />
     </Grid>
 </UserControl>

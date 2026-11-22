@@ -20,8 +20,20 @@ public sealed partial class ComponentItem : ObservableObject
 
     [ObservableProperty] public partial Status Status { get; set; }
     [ObservableProperty] public partial string Detail { get; set; }
-    [ObservableProperty] public partial bool IsInstalled { get; set; }
-    [ObservableProperty] public partial string ActionLabel { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NeedsAction))]
+    public partial bool IsInstalled { get; set; }
+
+    /// <summary>Vrai si le composant est installé mais que winget en connaît une version plus récente.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NeedsAction))]
+    public partial bool HasUpdate { get; set; }
+
+    [ObservableProperty] public partial bool IsSelected { get; set; }
+
+    /// <summary>Vrai s'il y a quelque chose à faire : l'installer ou le mettre à jour. Sinon la ligne n'a pas de case à cocher.</summary>
+    public bool NeedsAction => !IsInstalled || HasUpdate;
 
     internal ComponentItem(string group, string name, string wingetId, Func<DetectionContext, string?> detect)
     {
@@ -30,7 +42,6 @@ public sealed partial class ComponentItem : ObservableObject
         WingetId = wingetId;
         Detect = detect;
         Detail = "Pas encore vérifié";
-        ActionLabel = "Installer";
     }
 }
 
@@ -223,7 +234,7 @@ public static class ComponentService
             WingetOutcome.AlreadyUpToDate => (true, "Déjà à jour"),
             WingetOutcome.DoneAfterRestart => (true, "Installé, actif après un redémarrage"),
             WingetOutcome.RestartThenRetry => (false, "Redémarre le PC, puis relance l'installation."),
-            _ => (false, $"Échec (code 0x{code:X8})"),
+            _ => (false, Winget.Explain(code) ?? $"Échec (code 0x{code:X8}) : le détail est dans le journal en bas de l'écran."),
         };
     }
 }

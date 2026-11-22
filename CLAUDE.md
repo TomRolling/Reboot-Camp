@@ -50,6 +50,8 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **Animations** pendant les analyses et mises à jour (anneau qui tourne, barres de progression fluides, transitions entre onglets), dans l'esprit de Driver Booster. Aucune animation au repos (0 % CPU).
 - Accueil : résumé (nb de pilotes à mettre à jour, espace récupérable, composants manquants) rempli seulement après un bouton « Analyser tout ».
 - Gros bouton d'action par onglet, listes claires avec icônes d'état (OK / à mettre à jour / erreur).
+- **La fin d'une action doit se voir** (demande de Tom du 22/11/2026) : le bouton rond passe au vert avec une coche et « TERMINÉ » (orange si une partie a échoué), le titre commence par « Terminé : » ou « Nettoyage terminé : », et le bouton de l'appli clignote dans la barre des tâches si la fenêtre n'est pas au premier plan. Dans le code : `MarkDone()` avant `EndOperation()`.
+- Un échec winget connu est expliqué en français sous le nom du logiciel (`Winget.Explain`), pas seulement dans le journal.
 - Chaque onglet a son propre libellé sur le bouton rond et son propre titre (« Analyser les pilotes », « Analyser les logiciels », « Analyser avant de nettoyer », « Vérifier les composants ») : on doit savoir sur quelle page on est sans regarder la barre latérale (demande de Tom du 22/11/2026).
 
 ## Contenu des onglets
@@ -79,6 +81,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
   - DirectX End-User Runtime (anciennes DLL pour les jeux, détecter via `d3dx9_43.dll`)
   - Visual C++ Redistributables (toutes versions x86 + x64, détecter via le registre)
   - .NET Desktop Runtime / .NET Framework
+- Trois états par composant (demande de Tom du 22/11/2026) : **manquant** (rouge), **mise à jour disponible** (orange, d'après `winget upgrade`), **à jour** (vert). Cases à cocher sur ce qui est à faire, « Tout cocher / décocher » et un seul bouton « Installer la sélection », comme dans Logiciels.
 - Vérifier que `winget` est présent, sinon expliquer comment l'obtenir.
 - Afficher la sortie de winget dans un petit panneau de log.
 

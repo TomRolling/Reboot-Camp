@@ -32,7 +32,7 @@
             </Grid.ColumnDefinitions>
             <c:RingButton Width="128" Height="128"
                           Command="{Binding RingCommand}" IsBusy="{Binding IsBusy}" Progress="{Binding Progress}"
-                          Content="{Binding RingText}" Caption="{Binding RingCaption}" />
+                          Content="{Binding RingText}" Caption="{Binding RingCaption}" Outcome="{Binding Outcome}" />
             <StackPanel Grid.Column="1" Margin="26,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Headline}" Style="{StaticResource HeadlineText}" />
                 <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
