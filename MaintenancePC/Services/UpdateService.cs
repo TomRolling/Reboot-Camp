@@ -17,7 +17,7 @@ public static class UpdateService
     /// <summary>
     /// Dépôt GitHub au format « utilisateur/depot ». Vide = pas de vérification des mises à jour.
     /// </summary>
-    public static readonly string Repository = "";
+    public static readonly string Repository = "TomRolling/Reboot-Camp";
 
     public static bool IsConfigured => Repository.Length > 0;
 
