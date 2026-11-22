@@ -43,7 +43,7 @@ public static partial class SoftwareUpdateService
         try
         {
             await ProcessRunner.RunAsync("winget",
-                "upgrade --source winget --include-unknown --accept-source-agreements --disable-interactivity",
+                "upgrade --source winget --accept-source-agreements --disable-interactivity",
                 new DirectProgress<string>(line => { lock (lines) lines.Add(line); }), token);
         }
         catch (Win32Exception)

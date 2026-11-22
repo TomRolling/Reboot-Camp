@@ -75,6 +75,11 @@ public sealed class WindowsUpdateService
             for (int i = 0; i < count; i++)
             {
                 dynamic update = result.Updates.Item(i);
+                // Un pilote déjà installé qui attend seulement le redémarrage reste « non installé » pour Windows Update :
+                // on ne le repropose pas.
+                bool waitingForReboot = false;
+                try { waitingForReboot = (bool)update.RebootRequired; } catch { }
+                if (waitingForReboot) continue;
                 updates.Add(new DriverUpdate((object)update, (string)update.Title, Describe(update)));
             }
             return updates;

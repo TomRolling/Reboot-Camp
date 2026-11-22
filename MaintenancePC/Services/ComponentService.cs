@@ -128,7 +128,36 @@ public static class ComponentService
 
             if (best is null || CompareVersions(version, best) > 0) best = version;
         }
-        return best;
+        return best ?? DetectSideBySideRuntime(year, arch);
+    }
+
+    /// <summary>
+    /// Les versions 2005 et 2008 s'installent dans C:\Windows\WinSxS, et Windows en fournit parfois lui-même une copie
+    /// plus récente. Dans ce cas il n'y a pas de ligne « programme installé », mais les DLL sont bien là :
+    /// inutile de reproposer l'installation.
+    /// </summary>
+    private static string? DetectSideBySideRuntime(string year, string arch)
+    {
+        string? assembly = year switch { "2005" => "microsoft.vc80.crt", "2008" => "microsoft.vc90.crt", _ => null };
+        if (assembly is null) return null;
+
+        string winSxS = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "WinSxS");
+        string prefix = arch == "x64" ? "amd64" : "x86";
+        try
+        {
+            // Nom du dossier : amd64_microsoft.vc80.crt_<clé>_<version>_none_<empreinte>
+            return Directory.GetDirectories(winSxS, $"{prefix}_{assembly}_*")
+                .Select(d => Path.GetFileName(d).Split('_'))
+                .Where(parts => parts.Length >= 4)
+                .Select(parts => parts[3])
+                .OrderByDescending(v => v, Comparer<string>.Create(CompareVersions))
+                .Select(v => $"{v} (fourni par Windows)")
+                .FirstOrDefault();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     private static string? DetectVisualCpp14(string arch)

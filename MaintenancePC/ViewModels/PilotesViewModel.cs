@@ -19,6 +19,10 @@ public sealed partial class PilotesViewModel : PageViewModel
     private readonly WindowsUpdateService _windowsUpdate = new();
     private List<DriverInfo> _allDrivers = [];
 
+    // Ce qui a été installé depuis l'ouverture de l'appli : jamais reproposé, même avant le redémarrage du PC.
+    private readonly HashSet<string> _installedThisSession = [];
+    private string _nvidiaInstalledThisSession = "";
+
     public ObservableCollection<DriverUpdate> Updates { get; } = [];
     public ObservableCollection<DeviceProblem> Problems { get; } = [];
     public ObservableCollection<DriverInfo> Drivers { get; } = [];
@@ -101,6 +105,7 @@ public sealed partial class PilotesViewModel : PageViewModel
             try
             {
                 updates = await _windowsUpdate.SearchAsync(token);
+                updates.RemoveAll(u => _installedThisSession.Contains(u.Title));
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)
@@ -123,6 +128,8 @@ public sealed partial class PilotesViewModel : PageViewModel
                         nvidiaLinkNeeded = true;
                         notes.Add($"{card.Name} : carte non reconnue par le service NVIDIA, utilise le bouton « Pilotes NVIDIA » ci-dessous.");
                     }
+                    else if (driver.LatestVersion == _nvidiaInstalledThisSession)
+                        notes.Add($"{card.Name} : pilote NVIDIA {driver.LatestVersion} installé, redémarre le PC pour terminer.");
                     else if (driver.IsNewer)
                         updates.Insert(0, new DriverUpdate(driver));
                     else
@@ -245,6 +252,7 @@ public sealed partial class PilotesViewModel : PageViewModel
                     Report(p.Percent, $"{p.Message} {p.Update.Title}");
                 });
                 var summary = await _windowsUpdate.InstallAsync(fromWindowsUpdate, progress, token);
+                foreach (var done in fromWindowsUpdate.Where(u => u.Status == Status.Ok)) _installedThisSession.Add(done.Title);
                 succeeded += summary.Succeeded;
                 failed += summary.Failed;
                 reboot |= summary.RebootRequired;
@@ -268,6 +276,7 @@ public sealed partial class PilotesViewModel : PageViewModel
                 item.StatusText = ok ? "Installé" : "Échec";
                 if (ok)
                 {
+                    _nvidiaInstalledThisSession = item.Nvidia!.LatestVersion;
                     item.IsSelected = false;
                     item.Details = $"NVIDIA  ·  version {item.Nvidia!.LatestVersion} installée (avant : {item.Nvidia.InstalledVersion})";
                 }

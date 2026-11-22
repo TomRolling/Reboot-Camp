@@ -9,6 +9,10 @@ namespace MaintenancePC.ViewModels;
 /// <summary>Onglet Logiciels : met à jour les programmes installés (Chrome, Discord, VLC…) avec winget.</summary>
 public sealed partial class LogicielsViewModel : PageViewModel
 {
+    // Logiciels mis à jour depuis l'ouverture de l'appli : on ne les repropose pas, même si winget
+    // met un moment à remarquer la nouvelle version (ou si le logiciel doit redémarrer pour l'afficher).
+    private readonly HashSet<string> _updatedThisSession = new(StringComparer.OrdinalIgnoreCase);
+
     public ObservableCollection<SoftwareUpdate> Items { get; } = [];
     public LogViewModel Log { get; } = new();
 
@@ -66,6 +70,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
                 return;
             }
 
+            updates.RemoveAll(u => _updatedThisSession.Contains(u.Id));
             foreach (var update in updates)
             {
                 update.PropertyChanged += (_, e) =>
@@ -135,7 +140,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
 
                 item.Status = ok ? Status.Ok : Status.Error;
                 item.Detail = message;
-                if (ok) { succeeded++; item.IsSelected = false; } else failed++;
+                if (ok) { succeeded++; item.IsSelected = false; _updatedThisSession.Add(item.Id); } else failed++;
             }
 
             Report(100, "Terminé.");
