@@ -28,8 +28,9 @@ public partial class MainWindow : Window
         base.OnSourceInitialized(e);
 
         var handle = new WindowInteropHelper(this).Handle;
-        HwndSource.FromHwnd(handle)?.AddHook(BlockResizeBorders);
-        HwndSource.FromHwnd(handle)?.AddHook(HoldRestartDuringInstall);
+        var source = HwndSource.FromHwnd(handle);
+        source?.AddHook(BlockResizeBorders);
+        source?.AddHook(HoldRestartDuringInstall);
         RestartService.Attach(handle, AskToRestart);
         int enabled = 1;
         // Windows 11 et Windows 10 récent utilisent l'attribut 20 ; les Windows 10 d'avant 2020 utilisaient le 19.
@@ -84,9 +85,8 @@ public partial class MainWindow : Window
     /// </summary>
     private static IntPtr HoldRestartDuringInstall(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (message != WM_QUERYENDSESSION || !RestartService.IsGuarding) return IntPtr.Zero;
+        if (message != WM_QUERYENDSESSION || !RestartService.TryHoldRestart()) return IntPtr.Zero;
 
-        RestartService.OnRestartBlocked();
         handled = true;
         return IntPtr.Zero;   // 0 = « non, pas maintenant »
     }

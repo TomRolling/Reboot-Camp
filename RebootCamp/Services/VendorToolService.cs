@@ -76,22 +76,16 @@ public static partial class VendorToolService
     /// </summary>
     public static async Task<(bool Ok, string Message)> InstallIntelAssistantAsync(IProgress<string> output, CancellationToken token)
     {
-        string arguments =
-            $"install --id {IntelAssistantId} --exact --source winget --silent " +
-            "--accept-package-agreements --accept-source-agreements --disable-interactivity";
         try
         {
-            Logger.Info($"winget install {IntelAssistantId}");
-            int code = await ProcessRunner.RunAsync("winget", arguments, output, token);
-            Logger.Info($"winget {IntelAssistantId} : code 0x{code:X8}");
-
-            if (RestartService.IsRebootCode(code))
-                RestartService.Need("L'assistant Intel a besoin d'un redémarrage du PC pour terminer son installation.");
-
-            // 0 = installé ; 0x8A15002B = déjà installé et à jour.
-            return code is 0 or unchecked((int)0x8A15002B) || RestartService.IsSuccessPendingReboot(code)
-                ? (true, "L'assistant Intel est installé. Ouvre « Intel Driver & Support Assistant » depuis le menu Démarrer : il liste les pilotes à mettre à jour.")
-                : (false, $"L'installation de l'assistant Intel a échoué (code 0x{code:X8}).");
+            var (outcome, code) = await Winget.RunAsync("install", IntelAssistantId, "L'assistant Intel", output, token);
+            return outcome switch
+            {
+                WingetOutcome.Done or WingetOutcome.AlreadyUpToDate or WingetOutcome.DoneAfterRestart =>
+                    (true, "L'assistant Intel est installé. Ouvre « Intel Driver & Support Assistant » depuis le menu Démarrer : il liste les pilotes à mettre à jour."),
+                WingetOutcome.RestartThenRetry => (false, "Redémarre le PC, puis relance l'installation de l'assistant Intel."),
+                _ => (false, $"L'installation de l'assistant Intel a échoué (code 0x{code:X8})."),
+            };
         }
         catch (Win32Exception)
         {

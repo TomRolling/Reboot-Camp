@@ -52,7 +52,20 @@ public sealed partial class PilotesViewModel : PageViewModel
         BackupDrivers = true;
         FilterText = "";
         UpdatesMessage = "";
+
+        // Le bouton « Installer la sélection » se grise quand rien n'est coché (comme dans Logiciels et Nettoyage).
+        Updates.CollectionChanged += (_, e) =>
+        {
+            foreach (DriverUpdate update in e.NewItems ?? Array.Empty<DriverUpdate>())
+                update.PropertyChanged += (_, _) => InstallCommand.NotifyCanExecuteChanged();
+            InstallCommand.NotifyCanExecuteChanged();
+        };
     }
+
+    /// <summary>Les pilotes cochés qui restent à installer.</summary>
+    private IEnumerable<DriverUpdate> Selected => Updates.Where(u => u.IsSelected && u.Status != Status.Ok);
+
+    private bool CanInstall() => Selected.Any();
 
     /// <summary>Vrai tant qu'il reste au moins un pilote à installer (sinon la barre d'action disparaît).</summary>
     public bool HasPendingUpdates => Updates.Any(u => u.Status != Status.Ok);
@@ -219,13 +232,13 @@ public sealed partial class PilotesViewModel : PageViewModel
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanInstall))]
     private async Task InstallAsync()
     {
-        var selected = Updates.Where(u => u.IsSelected && u.Status != Status.Ok).ToList();
+        var selected = Selected.ToList();
         if (IsBusy || selected.Count == 0) return;
 
-        var token = BeginOperation("Installation des pilotes…", "Préparation…", installs: true);
+        var token = BeginOperation("Installation des pilotes…", "Préparation…");
         try
         {
             // ── Filets de sécurité avant de toucher aux pilotes ──
@@ -346,7 +359,7 @@ public sealed partial class PilotesViewModel : PageViewModel
         if (IsBusy) return;
         bool isAmd = link.Kind == LinkKind.AmdTool;
         string tool = isAmd ? "l'outil AMD" : "l'assistant Intel";
-        var token = BeginOperation($"Préparation de {tool}…", "Préparation…", installs: true);
+        var token = BeginOperation($"Préparation de {tool}…", "Préparation…");
         try
         {
             // Filet de sécurité. S'il échoue (protection du système désactivée), on continue : c'est noté dans le journal.

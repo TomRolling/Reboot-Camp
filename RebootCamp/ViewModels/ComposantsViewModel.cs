@@ -103,7 +103,7 @@ public sealed partial class ComposantsViewModel : PageViewModel
     {
         if (IsBusy || items.Count == 0 || !HasScanned || WingetWarning.Length > 0) return;
 
-        var token = BeginOperation("Installation des composants…", "Préparation…", installs: true);
+        var token = BeginOperation("Installation des composants…", "Préparation…");
         ShowLog = true;
         Log.Clear();
         var output = new Progress<string>(Log.Add);

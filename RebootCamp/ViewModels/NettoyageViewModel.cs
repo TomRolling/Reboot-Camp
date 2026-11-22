@@ -36,7 +36,7 @@ public sealed partial class NettoyageViewModel : PageViewModel
         {
             category.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName is nameof(CleanupCategory.IsSelected) or nameof(CleanupCategory.Size))
+                if (e.PropertyName is nameof(CleanupCategory.IsSelected) or nameof(CleanupCategory.Size) or nameof(CleanupCategory.IsAvailable))
                     UpdateSelection();
             };
         }
@@ -52,7 +52,10 @@ public sealed partial class NettoyageViewModel : PageViewModel
         CleanCommand.NotifyCanExecuteChanged();   // le bouton « Nettoyer » se grise quand rien n'est coché
     }
 
-    private bool CanClean() => Categories.Any(c => c.IsSelected && c.IsAvailable);
+    /// <summary>Les catégories cochées et nettoyables : la seule définition de « la sélection » pour le bouton.</summary>
+    private IEnumerable<CleanupCategory> Selected => Categories.Where(c => c.IsSelected && c.IsAvailable);
+
+    private bool CanClean() => Selected.Any();
 
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task RingAsync()
@@ -114,7 +117,7 @@ public sealed partial class NettoyageViewModel : PageViewModel
     [RelayCommand(CanExecute = nameof(CanClean))]
     private async Task CleanAsync()
     {
-        var selected = Categories.Where(c => c.IsSelected && c.IsAvailable).ToList();
+        var selected = Selected.ToList();
         if (IsBusy || selected.Count == 0) return;
 
         bool simulate = Simulation;

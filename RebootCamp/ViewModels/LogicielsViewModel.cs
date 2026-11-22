@@ -38,14 +38,17 @@ public sealed partial class LogicielsViewModel : PageViewModel
         SelectionText = "";
     }
 
+    /// <summary>Les logiciels cochés qui restent à mettre à jour : la seule définition de « la sélection ».</summary>
+    private IEnumerable<SoftwareUpdate> Selected => Items.Where(i => i.IsSelected && i.Status != Status.Ok);
+
     private void UpdateSelection()
     {
-        int count = Items.Count(i => i.IsSelected && i.Status != Status.Ok);
+        int count = Selected.Count();
         SelectionText = count == 0 ? "Rien de sélectionné" : PilotesViewModel.Plural(count, "logiciel sélectionné", "logiciels sélectionnés");
         UpgradeCommand.NotifyCanExecuteChanged();   // le bouton « Mettre à jour » se grise quand rien n'est coché
     }
 
-    private bool CanUpgrade() => Items.Any(i => i.IsSelected && i.Status != Status.Ok);
+    private bool CanUpgrade() => Selected.Any();
 
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task RingAsync()
@@ -123,10 +126,10 @@ public sealed partial class LogicielsViewModel : PageViewModel
     [RelayCommand(CanExecute = nameof(CanUpgrade))]
     private async Task UpgradeAsync()
     {
-        var selected = Items.Where(i => i.IsSelected && i.Status != Status.Ok).ToList();
+        var selected = Selected.ToList();
         if (IsBusy || selected.Count == 0) return;
 
-        var token = BeginOperation("Mise à jour des logiciels…", "Préparation…", installs: true);
+        var token = BeginOperation("Mise à jour des logiciels…", "Préparation…");
         ShowLog = true;
         Log.Clear();
         var output = new Progress<string>(Log.Add);

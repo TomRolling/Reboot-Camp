@@ -31,8 +31,6 @@ public sealed partial class SoftwareUpdate : ObservableObject
 /// <summary>Mises à jour des logiciels installés, via « winget upgrade ».</summary>
 public static partial class SoftwareUpdateService
 {
-    private const int WingetNoUpgrade = unchecked((int)0x8A15002B);
-
     [GeneratedRegex(@"\S+")]
     private static partial Regex WordRegex();
 
@@ -91,27 +89,13 @@ public static partial class SoftwareUpdateService
 
     public static async Task<(bool Ok, string Message)> UpgradeAsync(SoftwareUpdate update, IProgress<string> output, CancellationToken token)
     {
-        string arguments =
-            $"upgrade --id {update.Id} --exact --source winget --silent --include-unknown " +
-            "--accept-package-agreements --accept-source-agreements --disable-interactivity";
-
-        output.Report($"> winget {arguments}");
-        Logger.Info($"winget upgrade {update.Id}");
-
-        int code = await ProcessRunner.RunAsync("winget", arguments, output, token);
-
-        Logger.Info($"winget upgrade {update.Id} : code 0x{code:X8}");
-        if (RestartService.IsRebootCode(code))
+        var (outcome, code) = await Winget.RunAsync("upgrade", update.Id, update.Name, output, token, "--include-unknown");
+        return outcome switch
         {
-            RestartService.Need($"« {update.Name} » a besoin d'un redémarrage du PC pour terminer sa mise à jour.");
-            return RestartService.IsSuccessPendingReboot(code)
-                ? (true, "Mis à jour, actif après un redémarrage")
-                : (false, "Redémarre le PC, puis relance la mise à jour.");
-        }
-        return code switch
-        {
-            0 => (true, "Mis à jour"),
-            WingetNoUpgrade => (true, "Déjà à jour"),
+            WingetOutcome.Done => (true, "Mis à jour"),
+            WingetOutcome.AlreadyUpToDate => (true, "Déjà à jour"),
+            WingetOutcome.DoneAfterRestart => (true, "Mis à jour, actif après un redémarrage"),
+            WingetOutcome.RestartThenRetry => (false, "Redémarre le PC, puis relance la mise à jour."),
             _ => (false, $"Échec (code 0x{code:X8}). Ferme le logiciel s'il est ouvert, puis réessaie."),
         };
     }

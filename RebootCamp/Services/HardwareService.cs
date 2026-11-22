@@ -30,6 +30,13 @@ public static class HardwareService
         ("microsoft", "Support Surface", "https://support.microsoft.com/fr-fr/surface"),
     ];
 
+    /// <summary>
+    /// Vrai pour une vraie carte graphique, d'après son identifiant matériel (« PNPDeviceID »). Les cartes
+    /// virtuelles (émulateurs, bureau à distance) ne sont pas branchées sur le bus PCI.
+    /// </summary>
+    internal static bool IsPhysicalCard(string pnpDeviceId) =>
+        pnpDeviceId.StartsWith("PCI", StringComparison.OrdinalIgnoreCase);
+
     public static List<GraphicsCard> GetGraphicsCards()
     {
         var cards = new List<GraphicsCard>();
@@ -37,8 +44,7 @@ public static class HardwareService
         {
             string name = gpu["Name"] as string ?? "";
             string pnp = gpu["PNPDeviceID"] as string ?? "";
-            // On ignore les cartes virtuelles (émulateurs, bureau à distance) : seules les vraies cartes PCI comptent.
-            if (!pnp.StartsWith("PCI", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!IsPhysicalCard(pnp)) continue;
 
             string vendor = pnp.Contains("VEN_10DE", StringComparison.OrdinalIgnoreCase) ? "NVIDIA"
                 : pnp.Contains("VEN_1002", StringComparison.OrdinalIgnoreCase) ? "AMD"

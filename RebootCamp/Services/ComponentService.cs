@@ -39,9 +39,6 @@ internal sealed record DetectionContext(List<(string Name, string Version)> Visu
 
 public static class ComponentService
 {
-    // Code renvoyé par winget quand le paquet est déjà à jour (APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE).
-    private const int WingetNoUpgrade = unchecked((int)0x8A15002B);
-
     public static List<ComponentItem> CreateItems()
     {
         var items = new List<ComponentItem>
@@ -219,27 +216,13 @@ public static class ComponentService
     /// <summary>Installe le paquet, ou le met à jour s'il est déjà là (comportement par défaut de « winget install »).</summary>
     public static async Task<(bool Ok, string Message)> InstallAsync(ComponentItem item, IProgress<string> output, CancellationToken token)
     {
-        string arguments =
-            $"install --id {item.WingetId} --exact --source winget --silent " +
-            "--accept-package-agreements --accept-source-agreements --disable-interactivity";
-
-        output.Report($"> winget {arguments}");
-        Logger.Info($"winget install {item.WingetId}");
-
-        int code = await ProcessRunner.RunAsync("winget", arguments, output, token);
-
-        Logger.Info($"winget {item.WingetId} : code 0x{code:X8}");
-        if (RestartService.IsRebootCode(code))
+        var (outcome, code) = await Winget.RunAsync("install", item.WingetId, item.Name, output, token);
+        return outcome switch
         {
-            RestartService.Need($"« {item.Name} » a besoin d'un redémarrage du PC pour terminer son installation.");
-            return RestartService.IsSuccessPendingReboot(code)
-                ? (true, "Installé, actif après un redémarrage")
-                : (false, "Redémarre le PC, puis relance l'installation.");
-        }
-        return code switch
-        {
-            0 => (true, "Installé"),
-            WingetNoUpgrade => (true, "Déjà à jour"),
+            WingetOutcome.Done => (true, "Installé"),
+            WingetOutcome.AlreadyUpToDate => (true, "Déjà à jour"),
+            WingetOutcome.DoneAfterRestart => (true, "Installé, actif après un redémarrage"),
+            WingetOutcome.RestartThenRetry => (false, "Redémarre le PC, puis relance l'installation."),
             _ => (false, $"Échec (code 0x{code:X8})"),
         };
     }

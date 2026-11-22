@@ -22,7 +22,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
     private readonly WindowsUpdateService _windowsUpdate = new();
     private readonly Func<IEnumerable<string>> _scanSummary;
     private readonly HashSet<int> _loadedTabs = [];
-    private bool _isLoading;
+    private const int NoTab = -1;
 
     public IReadOnlyList<SectionTab> Tabs { get; } =
         [new("Démarrage"), new("Système"), new("Disques"), new("Sécurité"), new("Espace disque"), new("Réparation")];
@@ -37,7 +37,9 @@ public sealed partial class ExtrasViewModel : PageViewModel
     public ObservableCollection<FolderSize> BigFiles { get; } = [];
     public LogViewModel RepairLog { get; } = new();
 
-    [ObservableProperty] public partial int SelectedTab { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLoadingSection), nameof(LoadingStatus))]
+    public partial int SelectedTab { get; set; }
     [ObservableProperty] public partial string StartupMessage { get; set; }
     [ObservableProperty] public partial string SmartSummary { get; set; }
     [ObservableProperty] public partial string RepairStatus { get; set; }
@@ -45,17 +47,23 @@ public sealed partial class ExtrasViewModel : PageViewModel
     [ObservableProperty] public partial bool HasSpaceResult { get; set; }
     [ObservableProperty] public partial string ReportMessage { get; set; }
 
-    /// <summary>Vrai pendant la lecture d'une section : l'écran affiche « Lecture en cours… » au lieu d'un cadre vide.</summary>
+    /// <summary>La section en cours de lecture (une seule à la fois), ou <see cref="NoTab"/>.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(LoadingStatus))]
-    public partial bool IsLoadingSection { get; set; }
+    [NotifyPropertyChangedFor(nameof(IsLoadingSection), nameof(LoadingStatus))]
+    public partial int LoadingTab { get; set; } = NoTab;
+
+    /// <summary>
+    /// Vrai quand la section affichée est celle qu'on lit : l'écran montre « Lecture en cours… » au lieu d'un cadre vide.
+    /// Les autres sections, déjà lues ou sans lecture (Espace disque, Réparation), restent affichées normalement.
+    /// </summary>
+    public bool IsLoadingSection => LoadingTab == SelectedTab;
 
     /// <summary>L'icône ne tourne que pendant la lecture (aucune animation au repos).</summary>
     public Status LoadingStatus => IsLoadingSection ? Status.Working : Status.None;
 
     /// <param name="scanSummary">Fournit les résultats des autres onglets pour le rapport.</param>
     public ExtrasViewModel(Func<IEnumerable<string>> scanSummary) : base(
-        "Extras", "", "Extras", "Démarrage, infos système, santé des disques, sécurité et outils de réparation.")
+        "Extras", "", "Extras", "")   // le sous-titre de cette page est écrit dans ExtrasView.xaml
     {
         _scanSummary = scanSummary;
         StartupMessage = "";
@@ -75,9 +83,8 @@ public sealed partial class ExtrasViewModel : PageViewModel
 
     private async Task LoadTabAsync(int tab, bool force)
     {
-        if (tab > SecurityTab || _isLoading || (!force && _loadedTabs.Contains(tab))) return;
-        _isLoading = true;
-        IsLoadingSection = true;
+        if (tab > SecurityTab || LoadingTab != NoTab || (!force && _loadedTabs.Contains(tab))) return;
+        LoadingTab = tab;
         try
         {
             switch (tab)
@@ -122,8 +129,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
         }
         finally
         {
-            _isLoading = false;
-            IsLoadingSection = false;
+            LoadingTab = NoTab;
         }
 
         // Si l'utilisateur a changé de section pendant le chargement, on charge celle qu'il regarde maintenant.
