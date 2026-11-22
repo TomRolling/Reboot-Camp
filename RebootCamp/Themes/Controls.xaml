@@ -371,6 +371,36 @@
         </Setter>
     </Style>
 
+    <!-- ═════════════ Icône d'un programme dans une liste ═════════════ -->
+    <!-- Content = l'image de l'icône (IconService). Sans image, une icône neutre prend sa place. -->
+
+    <Style x:Key="AppIcon" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Grid>
+                        <Border x:Name="Fallback" CornerRadius="7" Background="{StaticResource HoverBrush}" Visibility="Collapsed">
+                            <TextBlock Text="&#xE7B8;" FontFamily="{StaticResource IconFont}" FontSize="14"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                        </Border>
+                        <Image Source="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}"
+                               RenderOptions.BitmapScalingMode="HighQuality" Stretch="Uniform" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="Fallback" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ═════════════ Case à cocher ═════════════ -->
 
     <Style TargetType="CheckBox">

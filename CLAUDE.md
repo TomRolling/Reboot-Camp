@@ -31,8 +31,10 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - Consommation au repos ≈ 0 % CPU, RAM la plus faible possible.
 
 ## Mise à jour de l'appli
-- Via les Releases d'un dépôt GitHub **public** : étiquette `vX.Y.Z` + le `.exe` en pièce jointe. Le dépôt est à renseigner dans `UpdateService.Repository` (vide = fonction désactivée).
-- `publier.ps1` fabrique le `.exe` et crée la Release si `gh` est installé.
+- Via les Releases du dépôt GitHub **public** `TomRolling/Reboot-Camp` (`UpdateService.Repository`) : étiquette `vX.Y.Z` + `RebootCamp.exe` en pièce jointe.
+- **Publication automatique** (depuis le 22/11/2026, sur le modèle de Clean Slate) : chaque `git push` sur `main` lance `.github/workflows/publication.yml` → tests, `.exe` autonome, Release. Le numéro est `VERSION_DE_BASE.N` (N = numéro de l'exécution), base actuelle **1.2**. Ne jamais baisser la base : un numéro plus petit que la dernière Release ne serait jamais proposé aux applis installées. Un push qui ne touche que des `.md`, `docs/`, `LICENSE` ou `.gitignore` ne publie rien.
+- Conséquence : **tout push de code publie une version**. Ne pousser que du code qui compile et dont les tests passent ; le `<Version>` du `.csproj` ne sert plus qu'aux fabrications locales.
+- `publier.ps1` ne fait que fabriquer le `.exe` en local (dossier `sortie/`), pour l'essayer.
 - L'exe n'est pas signé : SmartScreen avertit au premier lancement d'un fichier téléchargé par un navigateur. Seule une signature de code le supprime vraiment.
 
 ## Règles de sécurité
@@ -51,6 +53,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **Animations** pendant les analyses et mises à jour (anneau qui tourne, barres de progression fluides, transitions entre onglets), dans l'esprit de Driver Booster. Aucune animation au repos (0 % CPU).
 - Accueil : résumé (nb de pilotes à mettre à jour, espace récupérable, composants manquants) rempli seulement après un bouton « Analyser tout ».
 - Gros bouton d'action par onglet, listes claires avec icônes d'état (OK / à mettre à jour / erreur).
+- **Icônes des programmes** dans les listes où il y en a une vraie (demande de Tom du 22/11/2026) : Logiciels, Désinstaller, Extras > Démarrage. `IconService` les lit sur le PC (fichier `.exe`/`.ico` du programme, logo du paquet pour une application Windows) ; rien n'est téléchargé. Style `AppIcon`, avec une icône neutre quand rien n'est trouvé.
 - **La fin d'une action doit se voir** (demande de Tom du 22/11/2026) : le bouton rond passe au vert avec une coche et « TERMINÉ » (orange si une partie a échoué), le titre commence par « Terminé : » ou « Nettoyage terminé : », et le bouton de l'appli clignote dans la barre des tâches si la fenêtre n'est pas au premier plan. Dans le code : `MarkDone()` avant `EndOperation()`.
 - Un échec winget connu est expliqué en français sous le nom du logiciel (`Winget.Explain`), pas seulement dans le journal.
 - Chaque onglet a son propre libellé sur le bouton rond et son propre titre (« Analyser les pilotes », « Analyser les logiciels », « Analyser avant de nettoyer », « Vérifier les composants ») : on doit savoir sur quelle page on est sans regarder la barre latérale (demande de Tom du 22/11/2026).

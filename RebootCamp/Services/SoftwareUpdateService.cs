@@ -15,6 +15,11 @@ public sealed partial class SoftwareUpdate : ObservableObject
     /// <summary>La version proposée par winget.</summary>
     public string Available { get; }
 
+    /// <summary>Le nom tel que Windows l'enregistre : sert à retrouver l'icône du programme installé.</summary>
+    public string InstalledName { get; }
+
+    [ObservableProperty] public partial System.Windows.Media.ImageSource? Icon { get; set; }
+
     [ObservableProperty] public partial bool IsSelected { get; set; }
     [ObservableProperty] public partial string Detail { get; set; }
 
@@ -52,6 +57,7 @@ public sealed partial class SoftwareUpdate : ObservableObject
         Name = name.StartsWith("Uninstall ", StringComparison.OrdinalIgnoreCase) && name.Length > 12 ? name[10..].Trim() : name;
         Id = id;
         Available = available;
+        InstalledName = name;
         BlockedAction = "";
         bool unknown = current.Equals("Unknown", StringComparison.OrdinalIgnoreCase);
         Versions = unknown ? $"version actuelle inconnue  →  {available}" : $"{current}  →  {available}";

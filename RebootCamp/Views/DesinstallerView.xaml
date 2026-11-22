@@ -72,7 +72,8 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,14,0">
+                            <ContentControl Style="{StaticResource AppIcon}" Content="{Binding Icon}" HorizontalAlignment="Left" />
+                            <StackPanel Margin="42,0,14,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{Binding Details}" Style="{StaticResource SmallMutedText}"
                                            Visibility="{Binding Details, Converter={StaticResource EqualsToVis}, ConverterParameter=!}" />

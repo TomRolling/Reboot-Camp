@@ -1,38 +1,19 @@
-﻿# Fabrique le .exe autonome et, si l'outil « gh » de GitHub est installé, publie la nouvelle version.
+﻿# Fabrique le .exe autonome sur ce PC, pour l'essayer avant de l'envoyer.
 #
-# Avant de lancer ce script pour une nouvelle version :
-#   1. augmenter <Version> dans RebootCamp\RebootCamp.csproj (ex. 1.0.0 -> 1.0.1) ;
-#   2. faire un commit.
-# Les applis déjà installées proposeront la mise à jour dès que la Release existe sur GitHub.
+# La publication, elle, est automatique : chaque « git push » sur la branche main lance les tests sur GitHub,
+# fabrique le .exe et crée une Release (voir .github\workflows\publication.yml). Les applis déjà installées
+# proposent alors la mise à jour à leur prochain lancement.
 
 $ErrorActionPreference = 'Stop'
 $projet = Join-Path $PSScriptRoot 'RebootCamp\RebootCamp.csproj'
-$version = ([xml](Get-Content $projet)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
-Write-Host "Publication de la version $version..."
 
-# Les tests automatiques vérifient les règles de sécurité du nettoyage : s'il y en a un qui échoue, on ne publie pas.
 dotnet test (Join-Path $PSScriptRoot 'RebootCamp.Tests\RebootCamp.Tests.csproj') -nologo -v q
-if ($LASTEXITCODE -ne 0) { throw "Un test a échoué : publication annulée." }
+if ($LASTEXITCODE -ne 0) { throw "Un test a échoué." }
 
-dotnet publish $projet -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -nologo -v q
+# Dans un dossier à part : le .exe se fabrique même si l'appli est ouverte.
+$sortie = Join-Path $PSScriptRoot 'sortie'
+dotnet publish $projet -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -nologo -v q -o $sortie
 if ($LASTEXITCODE -ne 0) { throw "La compilation a échoué." }
 
-$exe = Join-Path $PSScriptRoot 'RebootCamp\bin\Release\net10.0-windows\win-x64\publish\RebootCamp.exe'
+$exe = Join-Path $sortie 'RebootCamp.exe'
 Write-Host "Fichier prêt : $exe ($([Math]::Round((Get-Item $exe).Length / 1MB)) Mo)"
-
-if (Get-Command gh -ErrorAction SilentlyContinue) {
-    $reponse = Read-Host "Publier la version v$version sur GitHub maintenant ? (o/n)"
-    if ($reponse -eq 'o') {
-        # Le code doit être sur GitHub avant la Release : l'étiquette v$version est posée sur le dernier commit envoyé.
-        git -C $PSScriptRoot push -u origin main
-        if ($LASTEXITCODE -ne 0) { throw "L'envoi du code sur GitHub a échoué." }
-        gh release create "v$version" $exe --repo TomRolling/Reboot-Camp --title "Version $version" --generate-notes
-        if ($LASTEXITCODE -ne 0) { throw "La création de la Release a échoué." }
-        Write-Host "Version v$version publiée."
-    }
-}
-else {
-    Write-Host ""
-    Write-Host "Pour la publier à la main : sur la page GitHub du dépôt, « Releases » > « Draft a new release »,"
-    Write-Host "étiquette v$version, glisser le fichier .exe ci-dessus, puis « Publish release »."
-}

@@ -16,6 +16,9 @@ public sealed partial class StartupEntry : ObservableObject
     public string Advice { get; }
     public Status AdviceStatus { get; }
 
+    /// <summary>L'icône du programme lancé, lue dans son fichier (null si on ne la trouve pas).</summary>
+    public System.Windows.Media.ImageSource? Icon { get; }
+
     // Où se trouve l'interrupteur « activé / désactivé » de cette entrée (le même que celui du Gestionnaire des tâches).
     internal bool IsUserScope { get; }
     internal string ApprovedSubKey { get; }
@@ -39,6 +42,7 @@ public sealed partial class StartupEntry : ObservableObject
         ApprovedValueName = approvedValueName;
         IsEnabled = isEnabled;
         (Advice, AdviceStatus) = StartupService.Advise(name, command);
+        Icon = IconService.ForCommand(command);
     }
 }
 

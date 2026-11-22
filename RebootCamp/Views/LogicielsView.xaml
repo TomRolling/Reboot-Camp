@@ -50,11 +50,14 @@
                             <!-- Pas de case à cocher une fois le logiciel mis à jour, ni quand winget ne peut pas faire la mise à jour -->
                             <CheckBox IsChecked="{Binding IsSelected}"
                                       Visibility="{Binding CanSelect, Converter={StaticResource BoolToVis}}" />
-                            <StackPanel Grid.Column="1" Margin="14,0">
-                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                <!-- Sur plusieurs lignes si besoin : en cas d'échec, c'est ici qu'est l'explication -->
-                                <TextBlock Text="{Binding Detail}" Style="{StaticResource SmallMutedText}" TextWrapping="Wrap" />
-                            </StackPanel>
+                            <DockPanel Grid.Column="1" Margin="14,0">
+                                <ContentControl DockPanel.Dock="Left" Style="{StaticResource AppIcon}" Content="{Binding Icon}" Margin="0,0,12,0" />
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    <!-- Sur plusieurs lignes si besoin : en cas d'échec, c'est ici qu'est l'explication -->
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource SmallMutedText}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DockPanel>
                             <!-- Ligne « bloquée » : un bouton pour réessayer, ou pour désinstaller puis réinstaller -->
                             <Button x:Name="Fix" Grid.Column="2" Style="{StaticResource GhostButton}" Padding="12,5" FontSize="12.5"
                                     Content="{Binding BlockedAction}" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"

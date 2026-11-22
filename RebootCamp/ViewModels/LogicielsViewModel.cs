@@ -84,6 +84,16 @@ public sealed partial class LogicielsViewModel : PageViewModel
                 return;
             }
 
+            // L'icône de chaque logiciel est celle du programme installé qui porte le même nom
+            // (winget coupe les noms trop longs et les termine par « … »).
+            var installed = updates.Count == 0 ? [] : await Task.Run(UninstallService.ListDesktopPrograms, token);
+            foreach (var update in updates)
+            {
+                string name = update.InstalledName.TrimEnd('…', '.', ' ');
+                update.Icon = (installed.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                               ?? installed.FirstOrDefault(p => p.Name.StartsWith(name, StringComparison.OrdinalIgnoreCase)))?.Icon;
+            }
+
             var hidden = new List<string>();
             foreach (var update in updates)
             {

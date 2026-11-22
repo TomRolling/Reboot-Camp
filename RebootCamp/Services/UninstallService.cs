@@ -23,7 +23,8 @@ public enum ProgramKind
 /// </param>
 public sealed record InstalledProgram(
     string Name, string Publisher, string Version, long SizeBytes, DateTime? InstalledOn,
-    ProgramKind Kind, string InstallLocation, string UninstallCommand, bool IsSilent, string Source)
+    ProgramKind Kind, string InstallLocation, string UninstallCommand, bool IsSilent, string Source,
+    System.Windows.Media.ImageSource? Icon = null)
 {
     /// <summary>« Éditeur  ·  version  ·  taille  ·  installé le … » : seulement ce qui est connu.</summary>
     public string Details => string.Join("  ·  ", new[]
@@ -120,9 +121,11 @@ public static partial class UninstallService
         DateTime? installedOn = DateTime.TryParseExact(Text(key, "InstallDate"), "yyyyMMdd",
             CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : null;
 
+        string location = Text(key, "InstallLocation").Trim('"').TrimEnd('\\');
         return new InstalledProgram(name, Text(key, "Publisher"), Text(key, "DisplayVersion"), size, installedOn,
-            ProgramKind.Desktop, Text(key, "InstallLocation").Trim('"').TrimEnd('\\'),
-            command, IsSilent: isMsi || quiet.Length > 0, Source: $"{rootId}|{keyName}");
+            ProgramKind.Desktop, location,
+            command, IsSilent: isMsi || quiet.Length > 0, Source: $"{rootId}|{keyName}",
+            Icon: IconService.ForProgram(Text(key, "DisplayIcon"), location));
     }
 
     private static string Text(RegistryKey key, string value) => (key.GetValue(value) as string)?.Trim() ?? "";
@@ -180,7 +183,8 @@ public static partial class UninstallService
                 string full = Json(item, "Full"), name = Json(item, "Display");
                 if (name.Length == 0 || !PackageNameRegex().IsMatch(full)) continue;
                 apps.Add(new InstalledProgram(name, PublisherName(Json(item, "Publisher")), Json(item, "Version"), 0, null,
-                    ProgramKind.WindowsApp, Json(item, "Location"), UninstallCommand: "", IsSilent: true, Source: full));
+                    ProgramKind.WindowsApp, Json(item, "Location"), UninstallCommand: "", IsSilent: true, Source: full,
+                    Icon: IconService.ForWindowsApp(Json(item, "Location"))));
             }
             return [.. apps.OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase)];
         }
