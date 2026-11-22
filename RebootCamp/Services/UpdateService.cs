@@ -10,7 +10,7 @@ public sealed record AppUpdate(Version Version, string DownloadUrl, string? Sha2
 
 /// <summary>
 /// Mise à jour de l'appli elle-même, à partir des « Releases » d'un dépôt GitHub public.
-/// Pour publier une version : créer une Release dont l'étiquette est le numéro (v1.2.0) et y joindre le .exe.
+/// Pour publier une version : créer une Release dont l'étiquette est le numéro (v1.0.0) et y joindre le .exe.
 /// </summary>
 public static class UpdateService
 {
