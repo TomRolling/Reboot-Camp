@@ -5,7 +5,7 @@
         xmlns:views="clr-namespace:MaintenancePC.Views"
         xmlns:c="clr-namespace:MaintenancePC.Controls"
         Title="MaintenancePC"
-        Width="1040" Height="680" MinWidth="900" MinHeight="580"
+        Width="1040" Height="680" MinWidth="1040" MinHeight="680"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource WindowBackgroundBrush}"
         Foreground="{StaticResource TextBrush}"
@@ -73,7 +73,8 @@
         </Border>
 
         <!-- Contenu de l'onglet sélectionné (apparaît en fondu) -->
-        <c:AnimatedContentControl Grid.Column="1" Content="{Binding CurrentPage}" Focusable="False" />
+        <!-- Largeur plafonnée : en plein écran le contenu reste groupé au centre au lieu de s'étirer d'un bord à l'autre -->
+        <c:AnimatedContentControl Grid.Column="1" Content="{Binding CurrentPage}" Focusable="False" MaxWidth="1180" />
     </Grid>
     </Border>
 </Window>

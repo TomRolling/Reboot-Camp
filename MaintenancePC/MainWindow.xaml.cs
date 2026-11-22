@@ -20,6 +20,7 @@ public partial class MainWindow : Window
         base.OnSourceInitialized(e);
 
         var handle = new WindowInteropHelper(this).Handle;
+        HwndSource.FromHwnd(handle)?.AddHook(BlockResizeBorders);
         int enabled = 1;
         // Windows 11 et Windows 10 récent utilisent l'attribut 20 ; les Windows 10 d'avant 2020 utilisaient le 19.
         // Si les deux échouent (Windows encore plus ancien), la barre de titre reste claire : sans gravité.
@@ -29,20 +30,50 @@ public partial class MainWindow : Window
 
     // Taille pour laquelle l'interface a été dessinée (zone utile de la fenêtre par défaut).
     private const double DesignWidth = 1024, DesignHeight = 641;
-    private const double MinScale = 0.85, MaxScale = 2.2;
+
+    // En plein écran on ne grossit que d'une partie de la place gagnée (40 %), et jamais au-delà de 1,5 fois :
+    // l'interface reste confortable sans donner l'impression d'être zoomée.
+    private const double Damping = 0.4, MinScale = 0.85, MaxScale = 1.5;
 
     /// <summary>
-    /// Quand la fenêtre change de taille, on calcule un facteur d'échelle unique : la plus petite des deux
-    /// proportions (largeur, hauteur), pour que rien ne déborde. Le « LayoutTransform » agrandit alors textes,
-    /// boutons et marges ensemble, et WPF redistribue la place restante (les listes s'élargissent).
+    /// Il n'y a que deux tailles : la fenêtre de base et le plein écran. Quand la taille change, on calcule un
+    /// facteur d'échelle unique à partir de la plus petite des deux proportions (largeur, hauteur). Le
+    /// « LayoutTransform » agrandit alors textes, boutons et marges ensemble, et WPF donne la place restante aux listes.
     /// </summary>
     private void OnHostSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        double scale = Math.Min(e.NewSize.Width / DesignWidth, e.NewSize.Height / DesignHeight);
+        double ratio = Math.Min(e.NewSize.Width / DesignWidth, e.NewSize.Height / DesignHeight);
+        double scale = ratio > 1 ? 1 + (ratio - 1) * Damping : ratio;
         scale = Math.Clamp(scale, MinScale, MaxScale);
         RootScale.ScaleX = scale;
         RootScale.ScaleY = scale;
     }
+
+    /// <summary>
+    /// Windows demande en permanence « sur quoi se trouve la souris ? ». Quand il répond « un bord qui redimensionne »,
+    /// on le remplace par « un bord simple » : la fenêtre ne peut plus être étirée à la souris, mais le bouton
+    /// Agrandir et le double-clic sur la barre de titre fonctionnent toujours.
+    /// </summary>
+    private static IntPtr BlockResizeBorders(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (message != WM_NCHITTEST) return IntPtr.Zero;
+
+        long hit = DefWindowProc(hwnd, message, wParam, lParam).ToInt64();
+        if (hit is >= HTLEFT and <= HTBOTTOMRIGHT)
+        {
+            handled = true;
+            return HTBORDER;
+        }
+        return IntPtr.Zero;
+    }
+
+    // Messages et valeurs documentés par Microsoft (winuser.h).
+    private const int WM_NCHITTEST = 0x0084;
+    private const long HTLEFT = 10, HTBOTTOMRIGHT = 17;
+    private const int HTBORDER = 18;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr DefWindowProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam);
 
     /// <summary>Fermer la fenêtre = quitter complètement.</summary>
     protected override void OnClosed(EventArgs e)
