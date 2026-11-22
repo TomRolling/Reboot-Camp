@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using MaintenancePC.Services;
@@ -25,6 +25,23 @@ public partial class MainWindow : Window
         // Si les deux échouent (Windows encore plus ancien), la barre de titre reste claire : sans gravité.
         if (DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref enabled, sizeof(int)) != 0)
             _ = DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD, ref enabled, sizeof(int));
+    }
+
+    // Taille pour laquelle l'interface a été dessinée (zone utile de la fenêtre par défaut).
+    private const double DesignWidth = 1024, DesignHeight = 641;
+    private const double MinScale = 0.85, MaxScale = 2.2;
+
+    /// <summary>
+    /// Quand la fenêtre change de taille, on calcule un facteur d'échelle unique : la plus petite des deux
+    /// proportions (largeur, hauteur), pour que rien ne déborde. Le « LayoutTransform » agrandit alors textes,
+    /// boutons et marges ensemble, et WPF redistribue la place restante (les listes s'élargissent).
+    /// </summary>
+    private void OnHostSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        double scale = Math.Min(e.NewSize.Width / DesignWidth, e.NewSize.Height / DesignHeight);
+        scale = Math.Clamp(scale, MinScale, MaxScale);
+        RootScale.ScaleX = scale;
+        RootScale.ScaleY = scale;
     }
 
     /// <summary>Fermer la fenêtre = quitter complètement.</summary>

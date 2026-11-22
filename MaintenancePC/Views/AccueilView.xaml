@@ -16,7 +16,7 @@
         </Border>
 
         <!-- Le gros bouton « Analyser », au centre -->
-        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="600">
+        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="720">
             <c:RingButton Width="190" Height="190"
                           Command="{Binding RingCommand}" IsBusy="{Binding IsBusy}" Progress="{Binding Progress}"
                           Content="{Binding RingText}" Caption="{Binding RingCaption}" />

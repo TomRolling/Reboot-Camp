@@ -34,7 +34,13 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid>
+    <!-- « Host » prend toute la fenêtre ; « Root » est l'interface, dessinée pour 1040 x 680 puis agrandie ou
+         réduite d'un seul bloc (voir OnHostSizeChanged) : tout garde les mêmes proportions à n'importe quelle taille. -->
+    <Border x:Name="Host" SizeChanged="OnHostSizeChanged">
+    <Grid x:Name="Root">
+        <Grid.LayoutTransform>
+            <ScaleTransform x:Name="RootScale" ScaleX="1" ScaleY="1" />
+        </Grid.LayoutTransform>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="210" />
             <ColumnDefinition Width="*" />
@@ -69,4 +75,5 @@
         <!-- Contenu de l'onglet sélectionné (apparaît en fondu) -->
         <c:AnimatedContentControl Grid.Column="1" Content="{Binding CurrentPage}" Focusable="False" />
     </Grid>
+    </Border>
 </Window>
