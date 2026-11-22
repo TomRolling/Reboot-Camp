@@ -23,12 +23,16 @@
                 <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
                            Margin="0,6,0,0" MaxHeight="40" />
             </StackPanel>
-            <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                <Button Style="{StaticResource GhostButton}" Content="Pilotes NVIDIA" Command="{Binding OpenNvidiaCommand}"
-                        ToolTip="Ouvre la page de téléchargement officielle de NVIDIA dans ton navigateur" />
-                <Button Style="{StaticResource GhostButton}" Content="Support Asus" Command="{Binding OpenAsusCommand}"
-                        Margin="0,8,0,0" ToolTip="Ouvre la page de support officielle d'Asus dans ton navigateur" />
-            </StackPanel>
+            <!-- Boutons « page du fabricant », choisis d'après le matériel de ce PC -->
+            <ItemsControl Grid.Column="2" VerticalAlignment="Center" ItemsSource="{Binding Links}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource GhostButton}" Content="{Binding Label}" Margin="0,4" ToolTip="{Binding ToolTip}"
+                                Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </Grid>
 
         <!-- Résultats (affichés après la première analyse) -->
@@ -48,10 +52,11 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="{Binding UpdatesMessage}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="14,10"
-                           Visibility="{Binding Updates.Count, Converter={StaticResource EqualsToVis}, ConverterParameter=0}" />
+                <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Text="{Binding UpdatesMessage}" Style="{StaticResource MutedText}"
+                           TextWrapping="Wrap" Margin="14,10" LineHeight="22" />
 
-                <ListBox Style="{StaticResource RowList}" ItemsSource="{Binding Updates}"
+                <ListBox Style="{StaticResource RowList}" ItemsSource="{Binding Updates}" VerticalAlignment="Top"
                          Visibility="{Binding Updates.Count, Converter={StaticResource EqualsToVis}, ConverterParameter=!0}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -74,13 +79,18 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+                </DockPanel>
 
                 <DockPanel Grid.Row="1" Margin="0,14,0,0" LastChildFill="False"
                            Visibility="{Binding Updates.Count, Converter={StaticResource EqualsToVis}, ConverterParameter=!0}">
                     <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Installer la sélection"
                             Command="{Binding InstallCommand}" />
                     <CheckBox DockPanel.Dock="Left" Margin="14,0,0,0" IsChecked="{Binding CreateRestorePoint}"
-                              Content="Créer un point de restauration avant (recommandé)" />
+                              Content="Point de restauration avant"
+                              ToolTip="Permet de revenir en arrière si un pilote pose problème (recommandé)" />
+                    <CheckBox DockPanel.Dock="Left" Margin="22,0,0,0" IsChecked="{Binding BackupDrivers}"
+                              Content="Sauvegarder les pilotes actuels"
+                              ToolTip="Copie les pilotes installés dans C:\ProgramData\MaintenancePC\SauvegardePilotes (quelques minutes, 1 à 3 Go)" />
                 </DockPanel>
             </Grid>
 

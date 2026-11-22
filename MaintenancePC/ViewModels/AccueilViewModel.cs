@@ -5,7 +5,7 @@ using MaintenancePC.Services;
 
 namespace MaintenancePC.ViewModels;
 
-/// <summary>Une des trois cartes de résumé de l'accueil.</summary>
+/// <summary>Une des cartes de résumé de l'accueil.</summary>
 public sealed partial class SummaryCard : ObservableObject
 {
     public string Title { get; }
@@ -29,33 +29,53 @@ public sealed partial class SummaryCard : ObservableObject
 public sealed partial class AccueilViewModel : PageViewModel
 {
     private readonly PilotesViewModel _pilotes;
+    private readonly LogicielsViewModel _logiciels;
     private readonly NettoyageViewModel _nettoyage;
     private readonly ComposantsViewModel _composants;
     private readonly Action<PageViewModel> _navigate;
 
     public SummaryCard PilotesCard { get; }
+    public SummaryCard LogicielsCard { get; }
     public SummaryCard NettoyageCard { get; }
     public SummaryCard ComposantsCard { get; }
     public IReadOnlyList<SummaryCard> Cards { get; }
 
-    public AccueilViewModel(PilotesViewModel pilotes, NettoyageViewModel nettoyage, ComposantsViewModel composants,
-        Action<PageViewModel> navigate) : base(
+    /// <summary>Avertissement affiché quand l'appli tourne sous un autre compte que celui de la session (vide sinon).</summary>
+    [ObservableProperty] public partial string AccountWarning { get; set; }
+
+    public AccueilViewModel(PilotesViewModel pilotes, LogicielsViewModel logiciels, NettoyageViewModel nettoyage,
+        ComposantsViewModel composants, Action<PageViewModel> navigate) : base(
         "Accueil", "", "Analyser tout le PC",
-        "Un clic pour vérifier les pilotes, l'espace récupérable et les composants. Rien n'est modifié.")
+        "Un clic pour vérifier les pilotes, les logiciels, l'espace récupérable et les composants. Rien n'est modifié.")
     {
         _pilotes = pilotes;
+        _logiciels = logiciels;
         _nettoyage = nettoyage;
         _composants = composants;
         _navigate = navigate;
+        AccountWarning = "";
 
         PilotesCard = new SummaryCard(pilotes);
+        LogicielsCard = new SummaryCard(logiciels);
         NettoyageCard = new SummaryCard(nettoyage);
         ComposantsCard = new SummaryCard(composants);
-        Cards = [PilotesCard, NettoyageCard, ComposantsCard];
+        Cards = [PilotesCard, LogicielsCard, NettoyageCard, ComposantsCard];
     }
 
     /// <summary>En revenant sur l'accueil, les cartes reprennent les résultats déjà obtenus dans les onglets.</summary>
-    public override void OnNavigatedTo() => RefreshCards();
+    public override void OnNavigatedTo()
+    {
+        RefreshCards();
+        _ = CheckAccountAsync();
+    }
+
+    private async Task CheckAccountAsync()
+    {
+        if (AccountWarning.Length > 0 || !await Task.Run(() => UserContext.IsDifferentUser)) return;
+        AccountWarning =
+            $"L'appli tourne avec le compte administrateur « {UserContext.ElevatedUser} ». " +
+            $"Le nettoyage et le démarrage visent bien le compte « {UserContext.InteractiveUser} », sauf sa corbeille.";
+    }
 
     [RelayCommand]
     private void Open(SummaryCard card) => _navigate(card.Target);
@@ -72,24 +92,23 @@ public sealed partial class AccueilViewModel : PageViewModel
         var token = BeginOperation("Analyse en cours…", "Analyse des pilotes…");
         try
         {
+
             // Chaque onglet fait sa propre analyse ; l'accueil ne fait que les enchaîner.
-            Report(5, "Analyse des pilotes…");
-            PilotesCard.Status = Status.Working;
-            await _pilotes.RunScanAsync(token);
-            RefreshCards();
-            token.ThrowIfCancellationRequested();
-
-            Report(45, "Calcul de l'espace récupérable…");
-            NettoyageCard.Status = Status.Working;
-            await _nettoyage.RunScanAsync(token);
-            RefreshCards();
-            token.ThrowIfCancellationRequested();
-
-            Report(85, "Vérification des composants…");
-            ComposantsCard.Status = Status.Working;
-            await _composants.RunScanAsync(token);
-            RefreshCards();
-            token.ThrowIfCancellationRequested();
+            var steps = new (SummaryCard Card, double Percent, string Text, Func<CancellationToken, Task> Run)[]
+            {
+                (PilotesCard, 5, "Analyse des pilotes…", _pilotes.RunScanAsync),
+                (LogicielsCard, 40, "Recherche des mises à jour de logiciels…", _logiciels.RunScanAsync),
+                (NettoyageCard, 65, "Calcul de l'espace récupérable…", _nettoyage.RunScanAsync),
+                (ComposantsCard, 85, "Vérification des composants…", _composants.RunScanAsync),
+            };
+            foreach (var (card, percent, text, run) in steps)
+            {
+                Report(percent, text);
+                card.Status = Status.Working;
+                await run(token);
+                RefreshCards();
+                token.ThrowIfCancellationRequested();
+            }
 
             Report(100, "Analyse terminée.");
             int toDo = Cards.Count(c => c.Status is Status.Warning or Status.Error);
@@ -114,11 +133,24 @@ public sealed partial class AccueilViewModel : PageViewModel
         {
             int updates = _pilotes.Updates.Count, errors = _pilotes.ErrorCount;
             PilotesCard.Value = updates.ToString();
-            PilotesCard.Detail = (updates == 1 ? "mise à jour disponible" : "mises à jour disponibles")
-                                 + (errors > 0 ? $"  ·  {errors} en erreur" : "");
+            PilotesCard.Detail = (updates == 1 ? "mise à jour" : "mises à jour") + (errors > 0 ? $"  ·  {errors} en erreur" : "");
             PilotesCard.Status = errors > 0 ? Status.Error : updates > 0 ? Status.Warning : Status.Ok;
         }
         else if (PilotesCard.Status == Status.Working) PilotesCard.Status = Status.None;
+
+        if (_logiciels.HasScanned)
+        {
+            int updates = _logiciels.UpdateCount;
+            LogicielsCard.Value = updates.ToString();
+            LogicielsCard.Detail = updates == 1 ? "mise à jour" : "mises à jour";
+            LogicielsCard.Status = updates > 0 ? Status.Warning : Status.Ok;
+        }
+        else if (!_logiciels.WingetAvailable)
+        {
+            LogicielsCard.Detail = "winget introuvable";
+            LogicielsCard.Status = Status.None;
+        }
+        else if (LogicielsCard.Status == Status.Working) LogicielsCard.Status = Status.None;
 
         if (_nettoyage.HasScanned)
         {
@@ -133,9 +165,32 @@ public sealed partial class AccueilViewModel : PageViewModel
         {
             int missing = _composants.MissingCount;
             ComposantsCard.Value = missing.ToString();
-            ComposantsCard.Detail = missing == 1 ? "composant manquant" : "composants manquants";
+            ComposantsCard.Detail = missing == 1 ? "manquant" : "manquants";
             ComposantsCard.Status = missing > 0 ? Status.Warning : Status.Ok;
         }
         else if (ComposantsCard.Status == Status.Working) ComposantsCard.Status = Status.None;
+    }
+
+    /// <summary>Lignes de résumé des analyses déjà faites, pour le rapport exporté depuis Extras.</summary>
+    public IEnumerable<string> BuildScanSummary()
+    {
+        if (_pilotes.HasScanned)
+        {
+            yield return $"Pilotes : {_pilotes.Updates.Count} mise(s) à jour disponible(s), {_pilotes.ErrorCount} périphérique(s) en erreur";
+            foreach (var update in _pilotes.Updates) yield return $"  - à mettre à jour : {update.Title}";
+            foreach (var problem in _pilotes.Problems) yield return $"  - {problem.Name} : {problem.Explanation}";
+        }
+        if (_logiciels.HasScanned)
+        {
+            yield return $"Logiciels : {_logiciels.UpdateCount} mise(s) à jour disponible(s)";
+            foreach (var item in _logiciels.Items) yield return $"  - {item.Name} ({item.Versions})";
+        }
+        if (_nettoyage.HasScanned)
+            yield return $"Nettoyage : {Format.Size(_nettoyage.RecoverableBytes)} récupérables";
+        if (_composants.HasScanned)
+        {
+            yield return $"Composants : {_composants.MissingCount} manquant(s)";
+            foreach (var item in _composants.Items.Where(i => !i.IsInstalled)) yield return $"  - manquant : {item.Name}";
+        }
     }
 }

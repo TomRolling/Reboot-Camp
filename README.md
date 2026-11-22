@@ -1,41 +1,53 @@
 # MaintenancePC
 
-Outil de maintenance Windows léger : un seul `.exe`, rien qui tourne en arrière-plan, rien de supprimé sans accord.
+Outil de maintenance Windows : un seul `.exe`, rien qui tourne en arrière-plan, rien de supprimé sans accord.
+Fonctionne sur Windows 10 et Windows 11 (64 bits), sans rien installer avant.
 
 | Onglet | Ce qu'il fait |
 |---|---|
-| **Accueil** | Un bouton « Analyser » qui enchaîne les trois analyses et résume le résultat. |
-| **Pilotes** | Liste les pilotes installés, repère les périphériques en erreur, cherche et installe les mises à jour proposées par Windows Update. |
-| **Nettoyage** | Calcule l'espace récupérable (fichiers temporaires, caches, corbeille…), montre un aperçu, supprime seulement ce qui est coché. |
+| **Accueil** | Un bouton « Analyser » qui enchaîne toutes les analyses et résume le résultat. |
+| **Pilotes** | Liste les pilotes, repère les périphériques en erreur, installe les mises à jour de Windows Update et le dernier pilote graphique NVIDIA. |
+| **Logiciels** | Met à jour les logiciels installés (navigateur, Discord, VLC…) avec `winget`. |
+| **Nettoyage** | Calcule l'espace récupérable, montre un aperçu, supprime seulement ce qui est coché. |
 | **Composants** | Vérifie DirectX, Visual C++ et .NET, et les installe avec `winget`. |
-| **Extras** | Programmes au démarrage, infos système, santé des disques, `sfc` / `DISM`, point de restauration. |
+| **Extras** | Démarrage, infos système et batterie, santé des disques, sécurité, espace disque, réparation, rapport à exporter. |
 
-## Prérequis
+## Utilisation
 
-- Windows 10 ou 11, 64 bits.
-- [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (l'onglet Composants sait l'installer une fois l'appli lancée).
-- `winget` pour l'onglet Composants (fourni avec Windows 11 ; sinon « Programme d'installation d'application » dans le Microsoft Store).
-- Un compte administrateur : l'appli demande l'élévation (fenêtre UAC) au lancement.
+Copier `MaintenancePC.exe` sur le PC et double-cliquer. Windows demande les droits administrateur (fenêtre UAC) : répondre Oui.
+Il n'y a rien à installer : .NET est inclus dans le fichier.
+
+`winget` est nécessaire pour les onglets Logiciels et Composants. Il est fourni avec Windows 11 et les Windows 10 récents ; sinon, installer « Programme d'installation d'application » depuis le Microsoft Store.
 
 ## Compiler et publier
+
+Il faut le SDK .NET 10.
 
 ```powershell
 # Lancer en développement (depuis un terminal administrateur)
 dotnet run --project MaintenancePC
 
-# Produire le .exe unique
-dotnet publish MaintenancePC/MaintenancePC.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained false
+# Produire le .exe autonome (environ 60 Mo)
+dotnet publish MaintenancePC/MaintenancePC.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true
 ```
 
-Le résultat est `MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\MaintenancePC.exe` (environ 1 Mo). Ce fichier seul suffit, on peut le copier où on veut.
+Le résultat est `MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\MaintenancePC.exe`.
 
 ## Ce que l'appli ne fait jamais
 
 - Aucun démarrage automatique : pas de clé Run, pas de tâche planifiée, pas de service, pas d'icône de notification.
 - Aucune analyse au lancement : tout part d'un clic.
-- Fermer la fenêtre arrête tout : les opérations en cours sont annulées et les processus lancés (winget, dism, sfc) sont tués.
-- Pas de télémétrie, pas de publicité. Le réseau n'est utilisé que par Windows Update et winget, quand on le demande.
-- Pas de « nettoyage du registre », pas de pilotes téléchargés ailleurs que sur Windows Update.
+- Fermer la fenêtre arrête tout : les opérations en cours sont annulées et les processus lancés (winget, dism, sfc) sont tués. Seule exception : une installation de pilote NVIDIA déjà commencée va jusqu'au bout, car l'interrompre laisserait l'écran sans pilote.
+- Pas de télémétrie, pas de publicité. Le réseau n'est utilisé que par Windows Update, winget et le service de pilotes de NVIDIA, quand on le demande.
+- Pas de « nettoyage du registre », pas de BIOS ni de firmware.
+
+## Pilotes : d'où viennent-ils ?
+
+- **Windows Update** pour tous les périphériques (y compris chipset et processeur).
+- **NVIDIA** pour la carte graphique GeForce : l'appli interroge le service de nvidia.com, télécharge uniquement depuis `download.nvidia.com`, vérifie la signature numérique « NVIDIA Corporation », puis lance l'installeur en mode silencieux.
+- **AMD et Intel** : pas de source officielle automatisable ; un bouton ouvre la page du fabricant.
+
+Avant toute installation, l'appli propose un point de restauration et une sauvegarde des pilotes actuels dans `C:\ProgramData\MaintenancePC\SauvegardePilotes`.
 
 ## Sécurité du nettoyage
 
@@ -44,7 +56,10 @@ Le résultat est `MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\Main
 - Les liens et jonctions ne sont jamais suivis ; un fichier verrouillé est simplement ignoré.
 - Cache des navigateurs : cache uniquement (jamais cookies, historique ou mots de passe), et seulement si le navigateur est fermé.
 - **Mode simulation** : fait tout comme en vrai sans rien supprimer.
-- Point de restauration proposé (coché par défaut) avant un nettoyage ou une installation de pilote.
+
+## Comptes non administrateurs
+
+Si la personne a un compte standard et tape le mot de passe d'un compte administrateur, l'appli tourne sous ce compte administrateur. Elle le détecte, l'affiche sur l'accueil, et vise quand même les fichiers temporaires, les caches de navigateur et le démarrage de la personne connectée. Sa corbeille n'est pas accessible dans ce cas.
 
 ## Journal
 
@@ -54,11 +69,12 @@ Les actions sont notées dans `%LOCALAPPDATA%\MaintenancePC\logs\maintenance.log
 
 ```
 MaintenancePC/
-  Services/     accès au système : WMI, Windows Update, registre, winget, suppression de fichiers
+  Services/     accès au système : WMI, Windows Update, registre, winget, NVIDIA, suppression de fichiers
   ViewModels/   logique de chaque onglet (pattern MVVM, CommunityToolkit.Mvvm)
   Views/        écrans en XAML, sans logique
   Controls/     bouton rond animé, convertisseurs, petits comportements
   Themes/       couleurs (Dark.xaml) et styles (Controls.xaml)
+  Assets/       icône de l'application
 ```
 
 Seules dépendances : `CommunityToolkit.Mvvm` et `System.Management`.

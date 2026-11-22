@@ -15,8 +15,9 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **C# / WPF / .NET 10 (LTS)**, pattern MVVM léger (CommunityToolkit.Mvvm autorisé, rien d'autre sans demander).
 - Accès système : `System.Management` (WMI/CIM), API COM Windows Update Agent (`Microsoft.Update.Session`), registre, `winget` en ligne de commande.
 - Manifeste avec `requireAdministrator` (nécessaire pour pilotes et nettoyage système).
-- Publication : `dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true --self-contained false`
-  → un seul `.exe` de quelques Mo (nécessite le .NET 10 Desktop Runtime, que l'onglet Composants sait installer).
+- Publication : `dotnet publish MaintenancePC/MaintenancePC.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true`
+  → un seul `.exe` autonome d'environ 60 Mo qui embarque .NET : il démarre sur n'importe quel Windows 10/11 64 bits sans rien installer (décision de Tom du 22/11/2026, pour pouvoir le donner à ses proches).
+- Doit fonctionner sur **Windows 10 et Windows 11**, sur n'importe quel PC (fixe ou portable, NVIDIA/AMD/Intel, toutes marques) et pour un utilisateur débutant.
 
 ## Règles « appli clean » (NON NÉGOCIABLES)
 - **Aucun** démarrage automatique : pas de clé Run, pas de tâche planifiée, pas de service, pas d'icône dans la barre des tâches/zone de notification.
@@ -47,7 +48,9 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - Détection des périphériques **sans pilote ou en erreur** (`Win32_PnPEntity`, `ConfigManagerErrorCode != 0`) en rouge.
 - Mises à jour disponibles via l'API Windows Update : recherche `IsInstalled=0 and Type='Driver'`, affichage, installation de la sélection.
 - Bouton « Page du fabricant » pour la carte graphique NVIDIA et le support Asus (ouvre le navigateur).
-- Pas de base de pilotes maison, pas de téléchargement depuis des sites tiers.
+- Pilote graphique NVIDIA : recherché et téléchargé directement chez NVIDIA (`NvidiaDriverService`), signature « NVIDIA Corporation » vérifiée avant exécution, installation silencieuse sur clic (demande de Tom du 22/11/2026). AMD / Intel / chipset : Windows Update + lien vers la page officielle, faute de source officielle automatisable.
+- Jamais de BIOS ni de firmware. Pas de base de pilotes maison, pas de téléchargement depuis des sites tiers.
+- Avant installation : point de restauration + sauvegarde des pilotes (`pnputil /export-driver`), cases cochées par défaut.
 
 ### 2. Nettoyage (liste blanche)
 - Fichiers temporaires utilisateur (`%TEMP%`) et Windows (`C:\Windows\Temp`)
@@ -68,9 +71,16 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - Vérifier que `winget` est présent, sinon expliquer comment l'obtenir.
 - Afficher la sortie de winget dans un petit panneau de log.
 
+### 3 bis. Logiciels (ajouté le 22/11/2026)
+- Liste les logiciels installés qui ont une mise à jour (`winget upgrade`), cases à cocher, mise à jour de la sélection, journal winget.
+
 ### 4. Extras
-- **Démarrage** : programmes lancés au démarrage (clés Run HKCU/HKLM, dossier Démarrage), activer/désactiver comme le Gestionnaire des tâches (clés `StartupApproved`), sans rien supprimer.
-- **Infos système** : CPU, GPU, RAM, version de Windows, disques et espace libre.
+- **Sécurité** (lecture seule) : antivirus, Defender, pare-feu, mises à jour Windows en attente.
+- **Espace disque** : taille des dossiers du disque système et plus gros fichiers, sans rien supprimer.
+- **Rapport** : export d'un fichier texte résumant le PC, pour le dépannage à distance.
+- **Réparation réseau** : `ipconfig /flushdns` + `netsh winsock reset`.
+- **Démarrage** : programmes lancés au démarrage (clés Run HKCU/HKLM, dossier Démarrage), activer/désactiver comme le Gestionnaire des tâches (clés `StartupApproved`), sans rien supprimer. Conseil affiché pour les programmes connus.
+- **Infos système** : CPU, GPU, RAM, version de Windows, disques et espace libre, santé de la batterie (portables).
 - **Santé du disque** : `MSFT_PhysicalDisk` (HealthStatus) + statut SMART si dispo.
 - **Réparation** : boutons pour `sfc /scannow` et `DISM /RestoreHealth` avec la sortie en direct.
 - **Point de restauration** : bouton pour en créer un manuellement.

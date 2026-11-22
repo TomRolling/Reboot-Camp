@@ -7,7 +7,10 @@ namespace MaintenancePC.Services;
 public sealed partial class DriverUpdate : ObservableObject
 {
     /// <summary>L'objet COM IUpdate d'origine. Utilisé uniquement par <see cref="WindowsUpdateService"/>.</summary>
-    internal object ComUpdate { get; }
+    internal object? ComUpdate { get; }
+
+    /// <summary>Renseigné quand la ligne est le pilote graphique NVIDIA (téléchargé chez NVIDIA, pas via Windows Update).</summary>
+    internal NvidiaDriver? Nvidia { get; }
 
     public string Title { get; }
     public string Details { get; }
@@ -16,7 +19,13 @@ public sealed partial class DriverUpdate : ObservableObject
     [ObservableProperty] public partial Status Status { get; set; }
     [ObservableProperty] public partial string StatusText { get; set; }
 
-    internal DriverUpdate(object comUpdate, string title, string details)
+    internal DriverUpdate(NvidiaDriver nvidia) : this(null, $"{nvidia.GpuName} - pilote NVIDIA {nvidia.LatestVersion}",
+        $"NVIDIA  ·  version installée : {nvidia.InstalledVersion}  ·  {nvidia.SizeText}  ·  téléchargé depuis nvidia.com")
+    {
+        Nvidia = nvidia;
+    }
+
+    internal DriverUpdate(object? comUpdate, string title, string details)
     {
         ComUpdate = comUpdate;
         Title = title;
@@ -75,6 +84,21 @@ public sealed class WindowsUpdateService
         return search.WaitAsync(token);
     }
 
+    /// <summary>Nombre de mises à jour Windows (hors pilotes) en attente, et si un redémarrage est demandé. Lecture seule.</summary>
+    public Task<(int Pending, bool RebootRequired)> GetPendingAsync(CancellationToken token)
+    {
+        var search = Task.Run(() =>
+        {
+            _session ??= CreateCom("Microsoft.Update.Session");
+            dynamic searcher = _session.CreateUpdateSearcher();
+            searcher.ServerSelection = ServerSelectionWindowsUpdate;
+            dynamic result = searcher.Search("IsInstalled=0 and IsHidden=0 and Type='Software'");
+            dynamic systemInfo = CreateCom("Microsoft.Update.SystemInfo");
+            return ((int)result.Updates.Count, (bool)systemInfo.RebootRequired);
+        });
+        return search.WaitAsync(token);
+    }
+
     private static string Describe(dynamic update)
     {
         var parts = new List<string>();
@@ -103,7 +127,7 @@ public sealed class WindowsUpdateService
                     return new InstallSummary(succeeded, failed, reboot, Cancelled: true);
 
                 var item = updates[i];
-                dynamic update = item.ComUpdate;
+                dynamic update = item.ComUpdate!;
                 double basePercent = i * 100.0 / updates.Count;
                 double step = 100.0 / updates.Count;
 

@@ -1,44 +1,60 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MaintenancePC.Models;
 using MaintenancePC.Services;
 
 namespace MaintenancePC.ViewModels;
 
 public sealed partial class ExtrasViewModel : PageViewModel
 {
-    private const int StartupTab = 0, SystemTab = 1, DisksTab = 2;
+    private const int StartupTab = 0, SystemTab = 1, DisksTab = 2, SecurityTab = 3;
 
     [GeneratedRegex(@"(\d{1,3})(?:[.,]\d+)?\s*%")]
     private static partial Regex PercentRegex();
 
+    private readonly WindowsUpdateService _windowsUpdate = new();
+    private readonly Func<IEnumerable<string>> _scanSummary;
     private readonly HashSet<int> _loadedTabs = [];
     private bool _isLoading;
 
     public IReadOnlyList<SectionTab> Tabs { get; } =
-        [new("Démarrage"), new("Système"), new("Disques"), new("Réparation")];
+        [new("Démarrage"), new("Système"), new("Disques"), new("Sécurité"), new("Espace disque"), new("Réparation")];
 
     public ObservableCollection<StartupEntry> StartupEntries { get; } = [];
     public ObservableCollection<InfoLine> InfoLines { get; } = [];
     public ObservableCollection<VolumeInfo> Volumes { get; } = [];
     public ObservableCollection<DiskHealth> Disks { get; } = [];
+    public ObservableCollection<SecurityLine> SecurityLines { get; } = [];
+    public ObservableCollection<FolderSize> Folders { get; } = [];
+    public ObservableCollection<FolderSize> UserFolders { get; } = [];
+    public ObservableCollection<FolderSize> BigFiles { get; } = [];
     public LogViewModel RepairLog { get; } = new();
 
     [ObservableProperty] public partial int SelectedTab { get; set; }
     [ObservableProperty] public partial string StartupMessage { get; set; }
     [ObservableProperty] public partial string SmartSummary { get; set; }
     [ObservableProperty] public partial string RepairStatus { get; set; }
+    [ObservableProperty] public partial string SpaceStatus { get; set; }
+    [ObservableProperty] public partial bool HasSpaceResult { get; set; }
+    [ObservableProperty] public partial string ReportMessage { get; set; }
 
-    public ExtrasViewModel() : base(
-        "Extras", "", "Extras", "Démarrage, infos système, santé des disques et outils de réparation.")
+    /// <param name="scanSummary">Fournit les résultats des autres onglets pour le rapport.</param>
+    public ExtrasViewModel(Func<IEnumerable<string>> scanSummary) : base(
+        "Extras", "", "Extras", "Démarrage, infos système, santé des disques, sécurité et outils de réparation.")
     {
+        _scanSummary = scanSummary;
         StartupMessage = "";
         SmartSummary = "";
+        ReportMessage = "";
         RepairStatus = "Choisis un outil. La sortie s'affiche ici en direct.";
+        SpaceStatus = "Mesure la taille des dossiers du disque système. Rien n'est modifié. Peut durer quelques minutes.";
     }
 
     // Ces listes sont de simples lectures (registre, WMI) : on les charge quand l'utilisateur ouvre la section.
@@ -51,7 +67,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
 
     private async Task LoadTabAsync(int tab, bool force)
     {
-        if (_isLoading || (!force && _loadedTabs.Contains(tab))) return;
+        if (tab > SecurityTab || _isLoading || (!force && _loadedTabs.Contains(tab))) return;
         _isLoading = true;
         try
         {
@@ -66,11 +82,13 @@ public sealed partial class ExtrasViewModel : PageViewModel
                         StartupEntries.Add(entry);
                     }
                     Tabs[StartupTab].Badge = entries.Count.ToString();
-                    StartupMessage = entries.Count == 0 ? "Aucun programme au démarrage." : "";
+                    StartupMessage = entries.Count == 0
+                        ? "Aucun programme au démarrage."
+                        : "Désactiver un programme ne le supprime pas : il ne se lance simplement plus tout seul.";
                     break;
 
                 case SystemTab:
-                    var (lines, volumes) = await Task.Run(() => (SystemInfoService.GetSystemInfo(), SystemInfoService.GetVolumes()));
+                    var (lines, volumes) = await Task.Run(() => (GetSystemLines(), SystemInfoService.GetVolumes()));
                     Replace(InfoLines, lines);
                     Replace(Volumes, volumes);
                     break;
@@ -79,6 +97,12 @@ public sealed partial class ExtrasViewModel : PageViewModel
                     var (disks, smart) = await Task.Run(SystemInfoService.GetDisks);
                     Replace(Disks, disks);
                     SmartSummary = disks.Count == 0 ? "Impossible de lire l'état des disques." : smart;
+                    break;
+
+                case SecurityTab:
+                    Replace(SecurityLines, await Task.Run(SecurityService.GetStatus));
+                    SecurityLines.Add(new("Windows Update", "Recherche en cours…", Status.Working));
+                    _ = LoadWindowsUpdateLineAsync();
                     break;
             }
             _loadedTabs.Add(tab);
@@ -94,6 +118,40 @@ public sealed partial class ExtrasViewModel : PageViewModel
 
         // Si l'utilisateur a changé de section pendant le chargement, on charge celle qu'il regarde maintenant.
         if (tab != SelectedTab) await LoadTabAsync(SelectedTab, force: false);
+    }
+
+    private static List<InfoLine> GetSystemLines()
+    {
+        var lines = SystemInfoService.GetSystemInfo();
+        lines.Add(new InfoLine("Batterie", SecurityService.GetBatteryHealth() ?? "Pas de batterie (PC fixe) ou information indisponible"));
+        return lines;
+    }
+
+    /// <summary>La recherche Windows Update peut durer une minute : elle remplit sa ligne quand elle a fini.</summary>
+    private async Task LoadWindowsUpdateLineAsync()
+    {
+        SecurityLine line;
+        try
+        {
+            var (pending, reboot) = await _windowsUpdate.GetPendingAsync(AppLifetime.Token);
+            line = reboot
+                ? new("Windows Update", "Un redémarrage est nécessaire pour finir d'installer des mises à jour.", Status.Warning)
+                : pending == 0
+                    ? new("Windows Update", "Windows est à jour", Status.Ok)
+                    : new("Windows Update", $"{pending} mise(s) à jour en attente. Clique sur « Ouvrir Windows Update ».", Status.Warning);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("État de Windows Update", ex);
+            line = new("Windows Update", "État indisponible", Status.None);
+        }
+
+        var placeholder = SecurityLines.FirstOrDefault(l => l.Label == "Windows Update");
+        if (placeholder is not null) SecurityLines[SecurityLines.IndexOf(placeholder)] = line;
     }
 
     private static void Replace<T>(ObservableCollection<T> collection, IEnumerable<T> items)
@@ -121,24 +179,94 @@ public sealed partial class ExtrasViewModel : PageViewModel
         }
     }
 
+    [RelayCommand]
+    private static void OpenWindowsUpdate() => Open("ms-settings:windowsupdate");
+
+    [RelayCommand]
+    private static void OpenWindowsSecurity() => Open("windowsdefender:");
+
+    private static void Open(string target, string? arguments = null)
+    {
+        try
+        {
+            var info = arguments is null
+                ? new ProcessStartInfo(target) { UseShellExecute = true }
+                : new ProcessStartInfo(target, arguments) { UseShellExecute = false };
+            Process.Start(info)?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Ouverture de {target}", ex);
+        }
+    }
+
+    // ───────────────────────── Espace disque ─────────────────────────
+
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private async Task ScanSpaceAsync()
+    {
+        if (IsBusy)
+        {
+            Cancel();
+            return;
+        }
+
+        var token = BeginOperation("Extras", "Mesure de l'espace disque…");
+        SpaceStatus = "Mesure en cours…";
+        var progress = new Progress<string>(text => SpaceStatus = text);
+        try
+        {
+            var result = await Task.Run(() => DiskUsageService.Scan(progress, token), token);
+            Replace(Folders, result.Folders);
+            Replace(UserFolders, result.UserFolders);
+            Replace(BigFiles, result.BigFiles);
+            HasSpaceResult = true;
+            await Task.Yield();
+            SpaceStatus = "Voici ce qui prend le plus de place. Clique sur une ligne pour l'ouvrir dans l'Explorateur.";
+        }
+        catch (OperationCanceledException)
+        {
+            SpaceStatus = "Mesure annulée.";
+        }
+        catch (Exception ex)
+        {
+            SpaceStatus = "La mesure a échoué : " + ex.Message.Trim();
+            Logger.Error("Mesure de l'espace disque", ex);
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
+
+    [RelayCommand]
+    private static void OpenInExplorer(FolderSize item)
+    {
+        if (Directory.Exists(item.Path)) Open("explorer.exe", $"\"{item.Path}\"");
+        else if (File.Exists(item.Path)) Open("explorer.exe", $"/select,\"{item.Path}\"");
+    }
+
     // ───────────────────────── Réparation ─────────────────────────
 
     [RelayCommand]
-    private Task SfcAsync() => RunToolAsync(
-        "Vérification des fichiers système (SFC)", "sfc.exe", "/scannow", Encoding.Unicode);   // sfc écrit en UTF-16
+    private Task SfcAsync() => RunToolsAsync("Vérification des fichiers système (SFC)",
+        ("sfc.exe", "/scannow", Encoding.Unicode));   // sfc écrit en UTF-16
 
     [RelayCommand]
-    private Task DismAsync() => RunToolAsync(
-        "Réparation de l'image Windows (DISM)", "dism.exe", "/Online /Cleanup-Image /RestoreHealth", ProcessRunner.OemEncoding);
+    private Task DismAsync() => RunToolsAsync("Réparation de l'image Windows (DISM)",
+        ("dism.exe", "/Online /Cleanup-Image /RestoreHealth", ProcessRunner.OemEncoding));
 
-    private async Task RunToolAsync(string title, string tool, string arguments, Encoding encoding)
+    [RelayCommand]
+    private Task NetworkAsync() => RunToolsAsync("Réparation de la connexion Internet",
+        ("ipconfig.exe", "/flushdns", ProcessRunner.OemEncoding),
+        ("netsh.exe", "winsock reset", ProcessRunner.OemEncoding));
+
+    private async Task RunToolsAsync(string title, params (string Tool, string Arguments, Encoding Encoding)[] steps)
     {
         if (IsBusy) return;
         var token = BeginOperation("Extras", title);
         RepairLog.Clear();
-        RepairLog.Add($"> {tool} {arguments}");
         RepairStatus = $"{title} en cours… Cela peut durer plusieurs minutes.";
-        Logger.Info($"Lancement : {tool} {arguments}");
 
         var output = new Progress<string>(line =>
         {
@@ -150,11 +278,19 @@ public sealed partial class ExtrasViewModel : PageViewModel
 
         try
         {
-            int code = await ProcessRunner.RunAsync(ProcessRunner.SystemTool(tool), arguments, output, token, encoding);
-            RepairStatus = code == 0
+            int worst = 0;
+            foreach (var (tool, arguments, encoding) in steps)
+            {
+                RepairLog.Add($"> {tool} {arguments}");
+                Logger.Info($"Lancement : {tool} {arguments}");
+                int code = await ProcessRunner.RunAsync(ProcessRunner.SystemTool(tool), arguments, output, token, encoding);
+                Logger.Info($"{tool} terminé, code {code}");
+                if (code != 0) worst = code;
+            }
+            await Task.Yield();
+            RepairStatus = worst == 0
                 ? $"{title} : terminé. Lis le résultat ci-dessous."
-                : $"{title} : terminé avec le code {code}. Lis le détail ci-dessous.";
-            Logger.Info($"{tool} terminé, code {code}");
+                : $"{title} : terminé avec le code {worst}. Lis le détail ci-dessous.";
         }
         catch (OperationCanceledException)
         {
@@ -162,8 +298,8 @@ public sealed partial class ExtrasViewModel : PageViewModel
         }
         catch (Win32Exception ex)
         {
-            RepairStatus = $"Impossible de lancer {tool} : {ex.Message}";
-            Logger.Error($"Lancement de {tool}", ex);
+            RepairStatus = $"Impossible de lancer l'outil : {ex.Message}";
+            Logger.Error(title, ex);
         }
         finally
         {
@@ -191,5 +327,72 @@ public sealed partial class ExtrasViewModel : PageViewModel
         {
             EndOperation();
         }
+    }
+
+    // ───────────────────────── Rapport ─────────────────────────
+
+    /// <summary>Écrit un fichier texte résumant le PC : pratique à envoyer à quelqu'un qui dépanne à distance.</summary>
+    [RelayCommand]
+    private async Task ExportReportAsync()
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Enregistrer le rapport",
+            FileName = $"Rapport-PC-{DateTime.Now:yyyy-MM-dd}.txt",
+            Filter = "Fichier texte (*.txt)|*.txt",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        try
+        {
+            ReportMessage = "Création du rapport…";
+            var scanLines = _scanSummary().ToList();
+            string report = await Task.Run(() => BuildReport(scanLines));
+            await File.WriteAllTextAsync(dialog.FileName, report, Encoding.UTF8);
+            ReportMessage = $"Rapport enregistré : {dialog.FileName}";
+            Logger.Info($"Rapport exporté : {dialog.FileName}");
+        }
+        catch (Exception ex)
+        {
+            ReportMessage = "Impossible d'enregistrer le rapport : " + ex.Message;
+            Logger.Error("Export du rapport", ex);
+        }
+    }
+
+    private static string BuildReport(List<string> scanLines)
+    {
+        var text = new StringBuilder();
+        void Section(string title)
+        {
+            text.AppendLine();
+            text.AppendLine($"== {title} ==");
+        }
+
+        text.AppendLine($"Rapport MaintenancePC du {DateTime.Now:dd/MM/yyyy à HH:mm}");
+
+        Section("Ordinateur");
+        foreach (var line in GetSystemLines()) text.AppendLine($"{line.Label} : {line.Value}");
+
+        Section("Espace disque");
+        foreach (var volume in SystemInfoService.GetVolumes()) text.AppendLine($"{volume.Name} : {volume.Text}");
+
+        Section("Santé des disques");
+        var (disks, smart) = SystemInfoService.GetDisks();
+        foreach (var disk in disks) text.AppendLine($"{disk.Name} ({disk.Kind}) : {disk.HealthText} {disk.Details}".TrimEnd());
+        text.AppendLine(smart);
+
+        Section("Sécurité");
+        foreach (var line in SecurityService.GetStatus()) text.AppendLine($"{line.Label} : {line.Value}");
+
+        Section("Résultats des analyses");
+        if (scanLines.Count == 0) text.AppendLine("Aucune analyse lancée avant l'export.");
+        foreach (string line in scanLines) text.AppendLine(line);
+
+        Section("Programmes au démarrage");
+        foreach (var entry in StartupService.Load())
+            text.AppendLine($"[{(entry.IsEnabled ? "activé" : "désactivé")}] {entry.Name} - {entry.Command}");
+
+        return text.ToString();
     }
 }

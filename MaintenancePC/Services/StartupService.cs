@@ -1,5 +1,6 @@
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
+using MaintenancePC.Models;
 using Microsoft.Win32;
 
 namespace MaintenancePC.Services;
@@ -11,8 +12,12 @@ public sealed partial class StartupEntry : ObservableObject
     public string Command { get; }
     public string Source { get; }
 
+    /// <summary>Conseil pour les programmes connus (vide si on ne sait pas).</summary>
+    public string Advice { get; }
+    public Status AdviceStatus { get; }
+
     // Où se trouve l'interrupteur « activé / désactivé » de cette entrée (le même que celui du Gestionnaire des tâches).
-    internal RegistryHive ApprovedHive { get; }
+    internal bool IsUserScope { get; }
     internal string ApprovedSubKey { get; }
     internal string ApprovedValueName { get; }
 
@@ -24,15 +29,16 @@ public sealed partial class StartupEntry : ObservableObject
     partial void OnIsEnabledChanged(bool value) => Changed?.Invoke(this, value);
 
     internal StartupEntry(string name, string command, string source,
-        RegistryHive approvedHive, string approvedSubKey, string approvedValueName, bool isEnabled)
+        bool isUserScope, string approvedSubKey, string approvedValueName, bool isEnabled)
     {
         Name = name;
         Command = command;
         Source = source;
-        ApprovedHive = approvedHive;
+        IsUserScope = isUserScope;
         ApprovedSubKey = approvedSubKey;
         ApprovedValueName = approvedValueName;
         IsEnabled = isEnabled;
+        (Advice, AdviceStatus) = StartupService.Advise(name, command);
     }
 }
 
@@ -45,25 +51,53 @@ public static class StartupService
     private const string RunPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ApprovedPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved";
 
+    // Programmes connus qu'on peut désactiver sans rien casser : ils se lancent très bien à la main.
+    private static readonly string[] SafeToDisable =
+    [
+        "discord", "steam", "epicgames", "epic games", "spotify", "teams", "skype", "riotclient", "riot client",
+        "battle.net", "ubisoft", "uplay", "ea app", "eadesktop", "origin.exe", "gog galaxy", "adobe", "acrobat", "creative cloud",
+        "ccleaner", "utorrent", "qbittorrent", "zoom", "slack", "whatsapp", "telegram", "jusched", "itunes", "icloud",
+        "curseforge", "overwolf", "lunar client", "opera.exe", "msedge", "chrome", "brave", "wargaming", "rockstar",
+        "bongocat", "mumu", "bluestacks", "ankama", "minecraft", "twitch", "vlc", "deezer",
+    ];
+
+    // Programmes qu'il vaut mieux laisser : sécurité, son, pavé tactile, carte graphique.
+    private static readonly string[] BetterKeep =
+    [
+        "securityhealth", "windows security", "defender", "rtkaud", "realtek", "synaptics", "elantech", "etdctrl", "touchpad",
+        "igfx", "nvidia", "radeon", "amd ", "bitdefender", "kaspersky", "avast", "avgui", "norton", "\\eset\\", "malwarebytes",
+    ];
+
+    internal static (string Advice, Status Status) Advise(string name, string command)
+    {
+        string text = $"{name} {command}".ToLowerInvariant();
+        if (BetterKeep.Any(text.Contains)) return ("À garder", Status.Ok);
+        if (text.Contains("vanguard")) return ("À garder si tu joues à Valorant", Status.None);
+        if (SafeToDisable.Any(text.Contains)) return ("Peut être désactivé", Status.Warning);
+        return ("", Status.None);
+    }
+
     public static List<StartupEntry> Load()
     {
         var entries = new List<StartupEntry>();
 
-        AddRunKey(entries, RegistryHive.CurrentUser, RegistryView.Registry64, "Run", "Ton compte");
-        AddRunKey(entries, RegistryHive.LocalMachine, RegistryView.Registry64, "Run", "Tous les utilisateurs");
-        AddRunKey(entries, RegistryHive.LocalMachine, RegistryView.Registry32, "Run32", "Tous les utilisateurs (32 bits)");
+        using (var user = UserContext.OpenUserRegistry())
+            AddRunKey(entries, user, isUserScope: true, "Run", "Ton compte");
+        using (var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            AddRunKey(entries, machine, isUserScope: false, "Run", "Tous les utilisateurs");
+        using (var machine32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
+            AddRunKey(entries, machine32, isUserScope: false, "Run32", "Tous les utilisateurs (32 bits)");
 
-        AddFolder(entries, Environment.GetFolderPath(Environment.SpecialFolder.Startup), RegistryHive.CurrentUser, "Dossier Démarrage");
-        AddFolder(entries, Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup), RegistryHive.LocalMachine, "Dossier Démarrage (tous)");
+        AddFolder(entries, UserContext.StartupFolder, isUserScope: true, "Dossier Démarrage");
+        AddFolder(entries, Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup), isUserScope: false, "Dossier Démarrage (tous)");
 
         return [.. entries.OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)];
     }
 
-    private static void AddRunKey(List<StartupEntry> entries, RegistryHive hive, RegistryView view, string approvedName, string source)
+    private static void AddRunKey(List<StartupEntry> entries, RegistryKey root, bool isUserScope, string approvedName, string source)
     {
         try
         {
-            using var root = RegistryKey.OpenBaseKey(hive, view);
             using var run = root.OpenSubKey(RunPath);
             if (run is null) return;
 
@@ -72,7 +106,7 @@ public static class StartupService
                 if (string.IsNullOrEmpty(name)) continue;
                 string command = run.GetValue(name)?.ToString() ?? "";
                 string subKey = $@"{ApprovedPath}\{approvedName}";
-                entries.Add(new StartupEntry(name, command, source, hive, subKey, name, ReadEnabled(hive, subKey, name)));
+                entries.Add(new StartupEntry(name, command, source, isUserScope, subKey, name, ReadEnabled(isUserScope, subKey, name)));
             }
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
@@ -81,7 +115,7 @@ public static class StartupService
         }
     }
 
-    private static void AddFolder(List<StartupEntry> entries, string folder, RegistryHive hive, string source)
+    private static void AddFolder(List<StartupEntry> entries, string folder, bool isUserScope, string source)
     {
         if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) return;
 
@@ -92,20 +126,24 @@ public static class StartupService
 
             string subKey = $@"{ApprovedPath}\StartupFolder";
             entries.Add(new StartupEntry(
-                Path.GetFileNameWithoutExtension(file), file, source, hive, subKey, fileName, ReadEnabled(hive, subKey, fileName)));
+                Path.GetFileNameWithoutExtension(file), file, source, isUserScope, subKey, fileName, ReadEnabled(isUserScope, subKey, fileName)));
         }
     }
+
+    /// <summary>Les clés StartupApproved sont toujours dans la vue 64 bits du registre.</summary>
+    private static RegistryKey OpenRoot(bool isUserScope) => isUserScope
+        ? UserContext.OpenUserRegistry()
+        : RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
 
     /// <summary>
     /// La valeur StartupApproved fait 12 octets. Premier octet pair (02, 06) = activé, impair (03) = désactivé.
     /// Pas de valeur du tout = activé.
     /// </summary>
-    private static bool ReadEnabled(RegistryHive hive, string subKey, string valueName)
+    private static bool ReadEnabled(bool isUserScope, string subKey, string valueName)
     {
         try
         {
-            // Les clés StartupApproved sont toujours dans la vue 64 bits du registre.
-            using var root = RegistryKey.OpenBaseKey(hive, RegistryView.Registry64);
+            using var root = OpenRoot(isUserScope);
             using var key = root.OpenSubKey(subKey);
             return key?.GetValue(valueName) is not byte[] { Length: > 0 } data || (data[0] & 1) == 0;
         }
@@ -130,7 +168,7 @@ public static class StartupService
             BitConverter.GetBytes(DateTime.UtcNow.ToFileTimeUtc()).CopyTo(data, 4);
         }
 
-        using var root = RegistryKey.OpenBaseKey(entry.ApprovedHive, RegistryView.Registry64);
+        using var root = OpenRoot(entry.IsUserScope);
         using var key = root.CreateSubKey(entry.ApprovedSubKey, writable: true);
         key.SetValue(entry.ApprovedValueName, data, RegistryValueKind.Binary);
 

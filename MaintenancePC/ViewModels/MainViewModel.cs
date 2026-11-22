@@ -20,11 +20,13 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         var pilotes = new PilotesViewModel();
+        var logiciels = new LogicielsViewModel();
         var nettoyage = new NettoyageViewModel();
         var composants = new ComposantsViewModel();
-        var accueil = new AccueilViewModel(pilotes, nettoyage, composants, page => CurrentPage = page);
+        var accueil = new AccueilViewModel(pilotes, logiciels, nettoyage, composants, page => CurrentPage = page);
+        var extras = new ExtrasViewModel(accueil.BuildScanSummary);
 
-        Pages = [accueil, pilotes, nettoyage, composants, new ExtrasViewModel()];
+        Pages = [accueil, pilotes, logiciels, nettoyage, composants, extras];
         CurrentPage = accueil;
     }
 

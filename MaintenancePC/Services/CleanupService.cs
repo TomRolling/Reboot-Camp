@@ -45,6 +45,9 @@ public sealed partial class CleanupCategory : ObservableObject
     [ObservableProperty] public partial string Detail { get; set; }
     [ObservableProperty] public partial Status Status { get; set; }
 
+    /// <summary>Explication simple affichée au survol du « ? » : à quoi ça sert, et est-ce risqué.</summary>
+    public string Help { get; internal set; } = "";
+
     public CleanupCategory(string name, string description, string icon, CleanupKind kind, bool selectedByDefault = true)
     {
         Name = name;
@@ -67,7 +70,7 @@ public sealed partial class CleanupCategory : ObservableObject
 public static class CleanupService
 {
     private static readonly string Windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-    private static readonly string LocalAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    private static string LocalAppData => UserContext.LocalAppData;
     private static readonly string ProgramData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
 
     private static readonly string DeliveryOptimizationCache = Path.Combine(
@@ -83,7 +86,7 @@ public static class CleanupService
             {
                 GetTargets = () =>
                 [
-                    new(Path.TrimEndingDirectorySeparator(Path.GetTempPath()), OldOnly: true),
+                    new(UserContext.TempPath, OldOnly: true),
                     new(Path.Combine(Windows, "Temp"), OldOnly: true),
                 ],
             },
@@ -124,6 +127,32 @@ public static class CleanupService
             "Anciens composants Windows (avancé)",
             "Supprime les anciennes versions des composants via DISM. Peut durer plus de 10 minutes.",
             "\uE7B8", CleanupKind.Dism, selectedByDefault: false));
+
+        foreach (var category in categories)
+        {
+            category.Help = category.Kind switch
+            {
+                CleanupKind.WindowsUpdateCache =>
+                    "Sans risque. Ce sont des fichiers d'installation de mises à jour déjà installées. " +
+                    "Si Windows en a encore besoin, il les retélécharge.",
+                CleanupKind.DeliveryOptimization =>
+                    "Sans risque. Windows garde des morceaux de mises à jour pour les envoyer à d'autres PC. Ton PC n'en a pas besoin.",
+                CleanupKind.RecycleBin =>
+                    "Attention : ce qui est dans la corbeille sera supprimé pour de bon. Vérifie qu'il n'y a rien à récupérer.",
+                CleanupKind.Dism =>
+                    "Sans risque mais long (plus de 10 minutes). Windows garde les anciennes versions de ses composants " +
+                    "après chaque mise à jour ; cette option les supprime. On ne peut ensuite plus désinstaller les mises à jour déjà installées.",
+                _ when category.BlockingProcess is not null =>
+                    "Sans risque. Le cache est une copie des images et pages déjà vues, pour les afficher plus vite. " +
+                    "Tes mots de passe, favoris, historique et sessions ne sont pas touchés. Les sites seront un peu plus lents la première fois.",
+                _ when category.Name.StartsWith("Fichiers temporaires") =>
+                    "Sans risque. Ce sont des fichiers de travail laissés par les programmes. " +
+                    "Ceux de moins de 24 h sont gardés, au cas où un programme ouvert s'en sert encore.",
+                _ when category.Name.StartsWith("Rapports") =>
+                    "Sans risque. Ces fichiers ne servent qu'à diagnostiquer un plantage. À garder seulement si un technicien te les demande.",
+                _ => "Sans risque. Windows reconstruit ces aperçus tout seul. Les dossiers d'images s'afficheront un peu plus lentement la première fois.",
+            };
+        }
 
         return categories;
     }
@@ -176,6 +205,8 @@ public static class CleanupService
 
         if (category.Kind == CleanupKind.RecycleBin)
         {
+            if (UserContext.IsDifferentUser)
+                return new ScanResult(0, 0, false, $"La corbeille de {UserContext.InteractiveUser} n'est pas accessible depuis le compte administrateur.");
             var (size, count) = QueryRecycleBin();
             return new ScanResult(size, count, true, null);
         }
@@ -390,6 +421,8 @@ public static class CleanupService
                 foreach (var directory in current.EnumerateDirectories("*", options))
                 {
                     if (directory.Attributes.HasFlag(FileAttributes.ReparsePoint)) continue;   // lien : on n'entre pas
+                    // %TEMP%\.net contient les fichiers dont les applis .NET (dont celle-ci) ont besoin pour démarrer.
+                    if (current == root && directory.Name.Equals(".net", StringComparison.OrdinalIgnoreCase)) continue;
                     pending.Push(directory);
                     // Date lue AVANT toute suppression (supprimer un fichier modifie la date du dossier).
                     if (!target.OldOnly || directory.LastWriteTimeUtc <= cutoff)

@@ -15,6 +15,11 @@ public partial class PilotesView : UserControl
     public PilotesView() => InitializeComponent();
 }
 
+public partial class LogicielsView : UserControl
+{
+    public LogicielsView() => InitializeComponent();
+}
+
 public partial class NettoyageView : UserControl
 {
     public NettoyageView() => InitializeComponent();
