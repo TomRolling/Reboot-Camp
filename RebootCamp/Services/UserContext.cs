@@ -25,6 +25,7 @@ public static class UserContext
     public static string InteractiveUser => Current.Value.InteractiveUser;
     public static string ElevatedUser => Current.Value.ElevatedUser;
     public static string LocalAppData => Current.Value.LocalAppData;
+    public static string RoamingAppData => Current.Value.RoamingAppData;
     public static string TempPath => Current.Value.TempPath;
 
     public static string StartupFolder => IsDifferentUser

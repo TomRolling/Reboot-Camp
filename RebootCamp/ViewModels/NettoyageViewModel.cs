@@ -12,12 +12,8 @@ public sealed partial class NettoyageViewModel : PageViewModel
 
     [ObservableProperty] public partial bool HasScanned { get; set; }
 
-    /// <summary>Mode simulation : on fait tout comme en vrai, mais rien n'est supprimé.</summary>
-    [ObservableProperty] public partial bool Simulation { get; set; }
-
     [ObservableProperty] public partial bool CreateRestorePoint { get; set; }
     [ObservableProperty] public partial string SelectionText { get; set; }
-    [ObservableProperty] public partial string CleanLabel { get; set; }
 
     /// <summary>Espace récupérable trouvé par la dernière analyse (pour l'écran d'accueil).</summary>
     public long RecoverableBytes { get; private set; }
@@ -29,7 +25,6 @@ public sealed partial class NettoyageViewModel : PageViewModel
     {
         CreateRestorePoint = true;
         SelectionText = "";
-        CleanLabel = "Nettoyer";
 
         Categories = new ObservableCollection<CleanupCategory>(CleanupService.CreateCategories());
         foreach (var category in Categories)
@@ -41,8 +36,6 @@ public sealed partial class NettoyageViewModel : PageViewModel
             };
         }
     }
-
-    partial void OnSimulationChanged(bool value) => CleanLabel = value ? "Simuler" : "Nettoyer";
 
     private void UpdateSelection()
     {
@@ -120,12 +113,11 @@ public sealed partial class NettoyageViewModel : PageViewModel
         var selected = Selected.ToList();
         if (IsBusy || selected.Count == 0) return;
 
-        bool simulate = Simulation;
-        var token = BeginOperation(simulate ? "Simulation en cours…" : "Nettoyage en cours…", "Préparation…");
+        var token = BeginOperation("Nettoyage en cours…", "Préparation…");
         long freed = 0;
         try
         {
-            if (CreateRestorePoint && !simulate)
+            if (CreateRestorePoint)
             {
                 SubText = "Création d'un point de restauration…";
                 var (ok, message) = await RestorePointService.CreateAsync(
@@ -142,31 +134,27 @@ public sealed partial class NettoyageViewModel : PageViewModel
             for (int i = 0; i < selected.Count; i++)
             {
                 var category = selected[i];
-                Report(i * 100.0 / selected.Count, $"{(simulate ? "Simulation" : "Nettoyage")} : {category.Name}…");
+                Report(i * 100.0 / selected.Count, $"Nettoyage : {category.Name}…");
                 category.Status = Status.Working;
 
-                var result = await CleanupService.CleanAsync(category, simulate, output, token);
+                var result = await CleanupService.CleanAsync(category, simulate: false, output, token);
 
                 freed += result.Freed;
                 category.Status = result.Note is null ? Status.Ok : Status.Warning;
-                category.Detail = Describe(result, simulate);
-                Logger.Info($"{(simulate ? "[simulation] " : "")}{category.Name} : {Format.Size(result.Freed)}, " +
+                category.Detail = Describe(result);
+                Logger.Info($"{category.Name} : {Format.Size(result.Freed)}, " +
                             $"{result.Deleted} fichier(s), {result.Skipped} ignoré(s). {result.Note}");
 
-                if (!simulate)
-                {
-                    category.Size = 0;
-                    category.SizeText = "";
-                    category.IsSelected = false;
-                }
+                category.Size = 0;
+                category.SizeText = "";
+                category.IsSelected = false;
             }
 
             Report(100, "Terminé.");
-            Headline = simulate ? $"Simulation terminée : {Format.Size(freed)} seraient libérés" : $"Nettoyage terminé : {Format.Size(freed)} libérés";
-            SubText = simulate ? "Rien n'a été supprimé. Décoche « Mode simulation » pour nettoyer vraiment."
-                : "Les fichiers en cours d'utilisation ont été laissés en place.";
+            Headline = $"Nettoyage terminé : {Format.Size(freed)} libérés";
+            SubText = "Les fichiers en cours d'utilisation ont été laissés en place.";
             MarkDone(allGood: selected.All(c => c.Status == Status.Ok));
-            if (!simulate) RecoverableBytes = 0;
+            RecoverableBytes = 0;
         }
         catch (OperationCanceledException)
         {
@@ -186,11 +174,11 @@ public sealed partial class NettoyageViewModel : PageViewModel
         }
     }
 
-    private static string Describe(CleanResult result, bool simulate)
+    private static string Describe(CleanResult result)
     {
         if (result.Note is not null) return result.Note;
 
-        string text = simulate ? $"{Format.Size(result.Freed)} seraient libérés" : $"{Format.Size(result.Freed)} libérés";
+        string text = $"{Format.Size(result.Freed)} libérés";
         if (result.Skipped > 0)
             text += (result.Skipped == 1 ? "  ·  1 fichier en cours d'utilisation ignoré" : $"  ·  {result.Skipped} fichiers en cours d'utilisation ignorés");
         return text;

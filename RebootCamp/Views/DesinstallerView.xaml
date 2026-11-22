@@ -1,0 +1,151 @@
+<UserControl x:Class="RebootCamp.Views.DesinstallerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:RebootCamp.Controls">
+    <Grid Margin="32,28,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Avant la première lecture : juste le gros bouton, au centre -->
+        <ContentControl Grid.RowSpan="2" Content="{Binding}" ContentTemplate="{StaticResource StartHero}" Focusable="False"
+                        Visibility="{Binding HasScanned, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
+
+        <!-- Après la lecture : en-tête compact (bouton rond + résultat) -->
+        <Grid Margin="0,0,0,22" Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <c:RingButton Width="128" Height="128"
+                          Command="{Binding RingCommand}" IsBusy="{Binding IsBusy}" Progress="{Binding Progress}"
+                          Content="{Binding RingText}" Caption="{Binding RingCaption}" Outcome="{Binding Outcome}" />
+            <StackPanel Grid.Column="1" Margin="26,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Headline}" Style="{StaticResource HeadlineText}" TextTrimming="CharacterEllipsis"
+                           TextWrapping="NoWrap" />
+                <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
+                           Margin="0,6,0,0" MaxHeight="40" />
+            </StackPanel>
+        </Grid>
+
+        <!-- 1. La liste des programmes -->
+        <Grid Grid.Row="1">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding HasScanned}" Value="True" />
+                                <Condition Binding="{Binding HasLeftovers}" Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Les deux catégories, et la recherche -->
+            <DockPanel Margin="0,0,0,10">
+                <ListBox DockPanel.Dock="Left" Style="{StaticResource SegmentedTabs}" ItemsSource="{Binding Tabs}"
+                         SelectedIndex="{Binding SelectedTab}" VerticalAlignment="Center" />
+                <Grid Margin="14,0,0,0" Width="320" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBox Style="{StaticResource SearchBox}" Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Rechercher un programme ou un éditeur…" Margin="12,0" VerticalAlignment="Center"
+                               IsHitTestVisible="False" Foreground="{StaticResource TextMutedBrush}"
+                               Visibility="{Binding FilterText, Converter={StaticResource EqualsToVis}, ConverterParameter=''}" />
+                </Grid>
+            </DockPanel>
+
+            <TextBlock Grid.Row="1" Text="{Binding ListMessage}" Style="{StaticResource MutedText}" Margin="14,10" TextWrapping="Wrap" />
+            <ListBox Grid.Row="1" Style="{StaticResource RowList}" ItemsSource="{Binding Programs}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,14,0">
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Details}" Style="{StaticResource SmallMutedText}"
+                                           Visibility="{Binding Details, Converter={StaticResource EqualsToVis}, ConverterParameter=!}" />
+                                <!-- Mention « Ne pas désinstaller » (rouge) ou « À garder » (orange) -->
+                                <TextBlock Text="{Binding Advice}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"
+                                           Foreground="{Binding AdviceStatus, Converter={StaticResource StatusBrush}}"
+                                           Visibility="{Binding Advice, Converter={StaticResource EqualsToVis}, ConverterParameter=!}" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Style="{StaticResource GhostButton}" Padding="12,5" FontSize="12.5"
+                                    Content="Désinstaller" VerticalAlignment="Center"
+                                    Command="{Binding DataContext.UninstallCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    Visibility="{Binding DataContext.IsBusy, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False"
+                       Visibility="{Binding IsBusy, Converter={StaticResource EqualsToVis}, ConverterParameter=False}">
+                <CheckBox DockPanel.Dock="Left" Margin="14,0,0,0" IsChecked="{Binding CreateRestorePoint}"
+                          Content="Point de restauration avant"
+                          ToolTip="Crée un point de restauration système avant chaque désinstallation : permet de revenir en arrière si quelque chose ne marche plus ensuite (recommandé)" />
+                <TextBlock DockPanel.Dock="Right" Text="Le registre de Windows n'est jamais modifié." VerticalAlignment="Center"
+                           Style="{StaticResource SmallMutedText}" />
+            </DockPanel>
+        </Grid>
+
+        <!-- 2. Après une désinstallation : l'aperçu de ce qui reste sur le disque, à cocher avant suppression -->
+        <Grid Grid.Row="1" Visibility="{Binding HasLeftovers, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="{Binding LeftoversTitle}" FontSize="12" FontWeight="SemiBold" Margin="14,0,0,8"
+                       Foreground="{StaticResource TextMutedBrush}" TextTrimming="CharacterEllipsis" />
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False">
+                <ItemsControl ItemsSource="{Binding Leftovers}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource RowBorder}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox IsChecked="{Binding IsSelected}" />
+                                    <StackPanel Grid.Column="1" Margin="14,0">
+                                        <TextBlock Text="{Binding Kind}" />
+                                        <TextBlock Text="{Binding Path}" Style="{StaticResource SmallMutedText}" ToolTip="{Binding Path}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{Binding SizeText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False"
+                       Visibility="{Binding IsBusy, Converter={StaticResource EqualsToVis}, ConverterParameter=False}">
+                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Supprimer la sélection"
+                        Command="{Binding DeleteLeftoversCommand}" MinWidth="130" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding LeftoversSelectionText}" VerticalAlignment="Center" Margin="0,0,18,0"
+                           Foreground="{StaticResource TextMutedBrush}" />
+                <Button DockPanel.Dock="Left" Style="{StaticResource GhostButton}" Content="Tout garder"
+                        Command="{Binding KeepLeftoversCommand}"
+                        ToolTip="Referme cette liste sans rien supprimer" />
+            </DockPanel>
+        </Grid>
+    </Grid>
+</UserControl>

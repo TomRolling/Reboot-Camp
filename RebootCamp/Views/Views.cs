@@ -30,6 +30,11 @@ public partial class ComposantsView : UserControl
     public ComposantsView() => InitializeComponent();
 }
 
+public partial class DesinstallerView : UserControl
+{
+    public DesinstallerView() => InitializeComponent();
+}
+
 public partial class ExtrasView : UserControl
 {
     public ExtrasView() => InitializeComponent();

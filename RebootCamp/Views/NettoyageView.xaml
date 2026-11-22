@@ -83,16 +83,13 @@
                     </Style.Triggers>
                 </Style>
             </DockPanel.Style>
-            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{Binding CleanLabel}"
+            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Nettoyer"
                     Command="{Binding CleanCommand}" MinWidth="130" />
             <TextBlock DockPanel.Dock="Right" Text="{Binding SelectionText}" VerticalAlignment="Center" Margin="0,0,18,0"
                        Foreground="{StaticResource TextMutedBrush}" />
             <CheckBox DockPanel.Dock="Left" Margin="14,0,0,0" IsChecked="{Binding CreateRestorePoint}"
                       Content="Point de restauration avant"
                       ToolTip="Crée un point de restauration système avant de supprimer (plus lent, mais plus sûr)" />
-            <CheckBox DockPanel.Dock="Left" Margin="24,0,0,0" IsChecked="{Binding Simulation}"
-                      Content="Mode simulation"
-                      ToolTip="Fait tout comme en vrai mais ne supprime rien : pour voir ce qui serait libéré" />
         </DockPanel>
     </Grid>
 </UserControl>

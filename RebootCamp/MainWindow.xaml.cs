@@ -33,6 +33,7 @@ public partial class MainWindow : Window
         source?.AddHook(HoldRestartDuringInstall);
         RestartService.Attach(handle, AskToRestart);
         Attention.Attach(handle);
+        Dialogs.Show = Confirm;
         int enabled = 1;
         // Windows 11 et Windows 10 récent utilisent l'attribut 20 ; les Windows 10 d'avant 2020 utilisaient le 19.
         // Si les deux échouent (Windows encore plus ancien), la barre de titre reste claire : sans gravité.
@@ -99,10 +100,16 @@ public partial class MainWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             if (!IsLoaded) return;
-            var dialog = new Views.RestartDialog(reason) { Owner = this };
-            if (dialog.ShowDialog() == true) RestartService.RestartNow();
+            var request = new ConfirmRequest("", "Redémarrage nécessaire", reason,
+                "Enregistre ton travail avant de redémarrer. Si tu choisis « Plus tard », rien ne se passe : tu redémarreras quand tu voudras.",
+                ConfirmLabel: "Redémarrer maintenant", CancelLabel: "Plus tard");
+            if (Confirm(request)) RestartService.RestartNow();
         });
     }
+
+    /// <summary>Affiche une fenêtre de confirmation par-dessus l'appli. Vrai seulement si l'utilisateur a confirmé.</summary>
+    private bool Confirm(ConfirmRequest request) =>
+        IsLoaded && new Views.ConfirmDialog(request) { Owner = this }.ShowDialog() == true;
 
     // Messages et valeurs documentés par Microsoft (winuser.h).
     private const int WM_QUERYENDSESSION = 0x0011;

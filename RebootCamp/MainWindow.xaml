@@ -29,6 +29,9 @@
         <DataTemplate DataType="{x:Type vm:ComposantsViewModel}">
             <views:ComposantsView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DesinstallerViewModel}">
+            <views:DesinstallerView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:ExtrasViewModel}">
             <views:ExtrasView />
         </DataTemplate>

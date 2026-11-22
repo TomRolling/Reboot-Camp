@@ -4,7 +4,7 @@
 
 ## Le projet
 Application de bureau Windows (un seul `.exe`) inspirée de Driver Booster + Advanced SystemCare, mais **légère, propre et honnête**.
-4 onglets : **Pilotes**, **Nettoyage**, **Composants**, **Extras**.
+Onglets : **Accueil**, **Pilotes**, **Logiciels**, **Nettoyage**, **Composants**, **Désinstaller**, **Extras**.
 Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les réponses et l'interface sont **en français**.
 
 ## Façon de travailler (OBLIGATOIRE)
@@ -38,9 +38,10 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 ## Règles de sécurité
 - **Point de restauration système** proposé (case cochée par défaut) avant toute installation de pilote ou gros nettoyage.
 - **Toujours un aperçu avant suppression** : liste des catégories, taille estimée, cases à cocher. On supprime seulement ce qui est coché.
-- On ne supprime **que** dans une liste blanche de dossiers connus (ci-dessous). Jamais ailleurs. Jamais de « nettoyage du registre ».
+- Le nettoyage ne supprime **que** dans une liste blanche de dossiers connus (ci-dessous). Jamais ailleurs. Jamais de « nettoyage du registre » : le registre est lu, jamais modifié.
+- Seule autre suppression autorisée (demande de Tom du 22/11/2026) : les **traces d'un programme qu'on vient de désinstaller**, avec les garde-fous de `LeftoverService` (voir l'onglet Désinstaller).
 - Fichiers verrouillés/en cours d'utilisation : on les ignore sans planter.
-- **Jamais de redémarrage du PC sans accord** (demande de Tom du 22/11/2026, après qu'un installeur lancé par winget a redémarré son PC) : quand un redémarrage est nécessaire, une fenêtre propose « Redémarrer maintenant » ou « Plus tard » (`RestartService`, `Views/RestartDialog`). Toute installation par winget passe par `Services/Winget.cs` (`Winget.RunAsync`), qui retient les redémarrages demandés par les installeurs (`RestartService.Guard`) et traduit les codes de sortie : ne jamais appeler `winget install/upgrade` ailleurs, ni passer `--allow-reboot`.
+- **Jamais de redémarrage du PC sans accord** (demande de Tom du 22/11/2026, après qu'un installeur lancé par winget a redémarré son PC) : quand un redémarrage est nécessaire, une fenêtre propose « Redémarrer maintenant » ou « Plus tard » (`RestartService`, `Views/ConfirmDialog`). Toute installation par winget passe par `Services/Winget.cs` (`Winget.RunAsync`), qui retient les redémarrages demandés par les installeurs (`RestartService.Guard`) et traduit les codes de sortie : ne jamais appeler `winget install/upgrade` ailleurs, ni passer `--allow-reboot`.
 - **Tests automatiques** (ajoutés le 22/11/2026, accord de Tom pour xUnit) : `RebootCamp.Tests` vérifie les règles du nettoyage sur de faux dossiers. Lancer `dotnet test` après toute modification de `CleanupService` ; `publier.ps1` refuse de publier si un test échoue.
 - Journal des actions dans `%LOCALAPPDATA%\RebootCamp\logs` (rotation, max ~1 Mo).
 
@@ -88,6 +89,15 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 ### 3 bis. Logiciels (ajouté le 22/11/2026)
 - Liste les logiciels installés qui ont une mise à jour (`winget upgrade`), cases à cocher, mise à jour de la sélection, journal winget.
 
+### 3 ter. Désinstaller (ajouté le 22/11/2026, demande de Tom : « comme Revo Uninstaller, mais sans toucher au registre »)
+- Deux catégories : **Programmes** (liste des programmes installés de Windows, lue dans le registre) et **Applications Windows** (Microsoft Store et applications fournies avec Windows, via `Get-AppxPackage` + `Get-StartApps`).
+- Désinstallation par le moyen officiel : le désinstalleur du programme (`msiexec /x … /passive /norestart` pour Windows Installer), `Remove-AppxPackage` pour une application Windows. Un programme à la fois, après confirmation. Annuler n'interrompt jamais un désinstalleur en cours : on cesse seulement de l'attendre.
+- Ensuite, recherche des **traces** laissées sur le disque (`LeftoverService`) : dossier d'installation déclaré, dossiers au nom exact du programme dans Program Files / ProgramData / AppData, menu Démarrer, raccourcis du Bureau. Aperçu avec cases à cocher ; on ne supprime que ce qui est coché.
+- Garde-fous : jamais un dossier général (Program Files, « Microsoft », « Common Files »…), jamais dans le dossier de Windows, jamais un dossier où vit un autre programme encore installé ou qui porte le nom d'une autre version installée, jamais à travers un lien ou une jonction.
+- Fichier verrouillé : confié à Windows pour suppression au prochain redémarrage (`MoveFileEx` + `MOVEFILE_DELAY_UNTIL_REBOOT`), puis la fenêtre de redémarrage est proposée. L'appli ne se relance pas au démarrage.
+- **Mentions** sur ce qu'il vaut mieux garder (`UninstallAdvice`) : rouge « Ne pas désinstaller » (Microsoft Store, winget, Edge/WebView2…), orange « À garder » (pilotes, Visual C++, .NET Runtime, panneaux NVIDIA/AMD/Intel…). Valable Windows 10 et 11. Un programme en rouge demande une confirmation appuyée.
+- Point de restauration avant chaque désinstallation, case cochée par défaut.
+
 ### 4. Extras
 - **Sécurité** (lecture seule) : antivirus, Defender, pare-feu, mises à jour Windows en attente.
 - **Espace disque** : taille des dossiers du disque système et plus gros fichiers, sans rien supprimer.
@@ -104,6 +114,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 1. Squelette : fenêtre, thème sombre, navigation entre onglets vides, fermeture propre testée. → **stop**
 2. Onglet Pilotes. → **stop**
 3. Onglet Nettoyage (d'abord en mode « simulation » qui n'efface rien, puis le vrai). → **stop**
+   Le mode simulation a été retiré de l'écran le 22/11/2026 (demande de Tom : inutile dans l'appli publiée). Il reste dans `CleanupService` pour les tests automatiques.
 4. Onglet Composants. → **stop**
 5. Onglet Extras + écran Accueil. → **stop**
 6. Publication du `.exe`, test du lancement à froid, vérification qu'aucun processus ne reste après fermeture, README. → **stop**

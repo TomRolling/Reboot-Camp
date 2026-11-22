@@ -24,6 +24,7 @@ Toutes les versions sont sur la page [Releases](https://github.com/TomRolling/Re
 | **Logiciels** | Met à jour les logiciels installés (navigateur, Discord, VLC…) avec `winget`. |
 | **Nettoyage** | Calcule l'espace récupérable, montre un aperçu, supprime seulement ce qui est coché. |
 | **Composants** | Vérifie DirectX, Visual C++ et .NET : manquant, à mettre à jour ou à jour. Installe ou met à jour la sélection avec `winget`. |
+| **Désinstaller** | Liste les programmes et les applications Windows, lance leur désinstalleur officiel, puis propose de supprimer les dossiers et raccourcis laissés derrière. Signale ce qu'il vaut mieux garder. |
 | **Extras** | Démarrage, infos système et batterie, santé des disques, sécurité, espace disque, réparation, rapport à exporter. |
 
 ## Utilisation
@@ -31,6 +32,8 @@ Toutes les versions sont sur la page [Releases](https://github.com/TomRolling/Re
 Il n'y a rien à installer : .NET est inclus dans le fichier. On peut le ranger où on veut (Bureau, clé USB…) et le supprimer pour s'en débarrasser.
 
 Rien ne se lance tout seul : chaque analyse part d'un bouton, et rien n'est supprimé ou installé sans un aperçu et une confirmation.
+
+La fin d'une action se voit : le bouton rond passe au vert avec une coche et « TERMINÉ », et le bouton de l'appli clignote dans la barre des tâches si on est parti sur une autre fenêtre.
 
 `winget` est nécessaire pour les onglets Logiciels et Composants. Il est fourni avec Windows 11 et les Windows 10 récents ; sinon, installer « Programme d'installation d'application » depuis le Microsoft Store.
 
@@ -58,10 +61,10 @@ Pour publier une version : augmenter `<Version>` dans le `.csproj`, faire un com
 
 - Aucun démarrage automatique : pas de clé Run, pas de tâche planifiée, pas de service, pas d'icône de notification.
 - Aucune analyse au lancement : tout part d'un clic. Seule la vérification de version ci-dessus est automatique.
-- Fermer la fenêtre arrête tout : les opérations en cours sont annulées et les processus lancés (winget, dism, sfc) sont tués. Seule exception : une installation de pilote NVIDIA déjà commencée va jusqu'au bout, car l'interrompre laisserait l'écran sans pilote.
+- Fermer la fenêtre arrête tout : les opérations en cours sont annulées et les processus lancés (winget, dism, sfc) sont tués. Deux exceptions, parce que les interrompre ferait plus de mal que de bien : une installation de pilote NVIDIA déjà commencée et un désinstalleur déjà lancé vont jusqu'au bout.
 - Aucun redémarrage du PC sans accord : quand il en faut un, une fenêtre propose « Redémarrer maintenant » ou « Plus tard ». Pendant une installation, l'appli retient aussi les redémarrages que certains installeurs déclenchent d'eux-mêmes (un installeur qui force l'arrêt de Windows ne peut toutefois pas être bloqué).
 - Pas de télémétrie, pas de publicité. Le réseau n'est utilisé que par Windows Update, winget et le service de pilotes de NVIDIA, quand on le demande.
-- Pas de « nettoyage du registre », pas de BIOS ni de firmware.
+- Pas de « nettoyage du registre » : le registre de Windows est lu (c'est là que se trouve la liste des programmes), jamais modifié. Pas de BIOS ni de firmware.
 
 ## Pilotes : d'où viennent-ils ?
 
@@ -78,11 +81,30 @@ Avant toute installation, l'appli propose un point de restauration et une sauveg
 - Les fichiers temporaires de moins de 24 h sont gardés (ils peuvent servir à un programme ouvert).
 - Les liens et jonctions ne sont jamais suivis ; un fichier verrouillé est simplement ignoré.
 - Cache des navigateurs : cache uniquement (jamais cookies, historique ou mots de passe), et seulement si le navigateur est fermé.
-- **Mode simulation** : fait tout comme en vrai sans rien supprimer.
+- Un aperçu est toujours affiché avant de supprimer : seul ce qui est coché part.
+
+## Désinstaller un programme
+
+L'onglet sépare les **programmes** classiques des **applications Windows** (Microsoft Store et applications fournies avec Windows).
+
+1. La désinstallation passe par le moyen officiel : le désinstalleur fourni par le programme, ou la commande de Windows pour une application du Store. Un programme à la fois, après confirmation, avec un point de restauration proposé avant.
+2. L'appli cherche ensuite ce que le programme a laissé sur le disque : son dossier d'installation, les dossiers à son nom dans `Program Files`, `ProgramData` et `AppData`, son dossier du menu Démarrer et ses raccourcis du Bureau.
+3. Elle montre cette liste avec des cases à cocher. Rien n'est supprimé avant le clic sur « Supprimer la sélection ».
+
+Garde-fous de cette recherche (`Services/LeftoverService.cs`) :
+
+- jamais un dossier général (`Program Files` lui-même, « Microsoft », « Common Files »…) ni quoi que ce soit dans le dossier de Windows ;
+- jamais un dossier dans lequel un autre programme encore installé se trouve, ni un dossier qui porte le nom d'une autre version encore installée ;
+- les liens et jonctions ne sont jamais suivis ;
+- un fichier verrouillé est confié à Windows, qui le supprime lui-même au prochain redémarrage. L'appli ne se relance pas au démarrage pour autant.
+
+Des mentions en couleur signalent ce qu'il vaut mieux ne pas retirer, sur Windows 10 comme sur Windows 11 : en rouge ce dont Windows ou d'autres programmes dépendent (Microsoft Store, winget, Edge et WebView2…), en orange ce qu'il est préférable de garder (pilotes, Visual C++, .NET, panneaux de réglage NVIDIA, AMD ou Intel…).
+
+Limite à connaître : l'appli ne retire pas les réglages qu'un programme a pu laisser dans le registre. C'est voulu : supprimer des entrées du registre « au jugé » est la première cause de dégâts des outils de ce genre.
 
 ## Tests automatiques
 
-Le dossier `RebootCamp.Tests` contient des tests qui vérifient ces règles sur de faux dossiers temporaires : rien hors de la liste blanche, liens jamais suivis, fichiers récents gardés, simulation qui ne supprime rien, fichiers verrouillés ignorés.
+Le dossier `RebootCamp.Tests` contient des tests qui vérifient ces règles sur de faux dossiers temporaires, sans jamais toucher aux vrais fichiers ni désinstaller quoi que ce soit : rien hors de la liste blanche, liens jamais suivis, fichiers récents gardés, fichiers verrouillés ignorés, dossiers généraux et dossiers d'autres programmes jamais proposés après une désinstallation.
 
 ```powershell
 dotnet test

@@ -30,7 +30,7 @@ public sealed partial class MainViewModel : ObservableObject
         var accueil = new AccueilViewModel(pilotes, logiciels, nettoyage, composants, page => CurrentPage = page);
         var extras = new ExtrasViewModel(accueil.BuildScanSummary);
 
-        Pages = [accueil, pilotes, logiciels, nettoyage, composants, extras];
+        Pages = [accueil, pilotes, logiciels, nettoyage, composants, new DesinstallerViewModel(), extras];
         CurrentPage = accueil;
     }
 
