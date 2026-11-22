@@ -39,7 +39,7 @@ public static class SecurityService
             int age = Convert.ToInt32(defender["AntivirusSignatureAge"] ?? 0);
             lines.Add(new("Protection en temps réel", realTime ? "Activée" : "Désactivée", realTime ? Status.Ok : Status.Error));
             lines.Add(new("Définitions de virus",
-                age == 0 ? "À jour (aujourd'hui)" : $"Datent de {age} jour(s)", age > 7 ? Status.Warning : Status.Ok));
+                age == 0 ? "À jour (aujourd'hui)" : (age == 1 ? "Datent d'hier" : $"Datent de {age} jours"), age > 7 ? Status.Warning : Status.Ok));
         }
 
         // ── Pare-feu ──

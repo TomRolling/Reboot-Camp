@@ -19,8 +19,12 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- En-tête : bouton rond + résultat + action principale -->
-        <Grid Margin="0,0,0,22">
+        <!-- Avant la première vérification : juste le gros bouton, au centre -->
+        <ContentControl Grid.RowSpan="4" Content="{Binding}" ContentTemplate="{StaticResource StartHero}" Focusable="False"
+                        Visibility="{Binding HasScanned, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
+
+        <!-- Après la vérification : en-tête compact (bouton rond + résultat + action principale) -->
+        <Grid Margin="0,0,0,22" Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -34,9 +38,13 @@
                 <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
                            Margin="0,6,0,0" MaxHeight="40" />
             </StackPanel>
-            <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Content="Installer ce qui manque"
-                    VerticalAlignment="Center" Command="{Binding InstallMissingCommand}"
-                    Visibility="{Binding MissingCount, Converter={StaticResource EqualsToVis}, ConverterParameter=!0}" />
+            <!-- Visible seulement s'il manque quelque chose et que rien n'est en cours -->
+            <Grid Grid.Column="2" VerticalAlignment="Center"
+                  Visibility="{Binding IsBusy, Converter={StaticResource EqualsToVis}, ConverterParameter=False}">
+                <Button Style="{StaticResource PrimaryButton}" Content="Installer ce qui manque"
+                        Command="{Binding InstallMissingCommand}"
+                        Visibility="{Binding MissingCount, Converter={StaticResource EqualsToVis}, ConverterParameter=!0}" />
+            </Grid>
         </Grid>
 
         <!-- Avertissement si winget est absent -->
@@ -45,7 +53,8 @@
             <TextBlock Text="{Binding WingetWarning}" TextWrapping="Wrap" />
         </Border>
 
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False"
+                      Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
             <ItemsControl ItemsSource="{Binding Source={StaticResource GroupedItems}}" Focusable="False">
                 <ItemsControl.GroupStyle>
                     <GroupStyle>
@@ -75,7 +84,7 @@
                                         Content="{Binding ActionLabel}" VerticalAlignment="Center"
                                         Command="{Binding DataContext.InstallOneCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"
-                                        Visibility="{Binding DataContext.HasScanned, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                        Visibility="{Binding DataContext.IsBusy, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
                             </Grid>
                         </Border>
                     </DataTemplate>

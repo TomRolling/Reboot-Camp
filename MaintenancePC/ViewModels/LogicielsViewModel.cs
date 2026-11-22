@@ -22,6 +22,9 @@ public sealed partial class LogicielsViewModel : PageViewModel
 
     public int UpdateCount => Items.Count(i => i.Status != Status.Ok);
 
+    /// <summary>Vrai tant qu'il reste au moins un logiciel à mettre à jour (sinon la barre d'action disparaît).</summary>
+    public bool HasPendingUpdates => UpdateCount > 0;
+
     public LogicielsViewModel() : base(
         "Logiciels", "", "Prêt à analyser",
         "Cherche les mises à jour de tes logiciels installés (navigateur, Discord, VLC…).")
@@ -52,6 +55,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
             var updates = await SoftwareUpdateService.ListAsync(token);
 
             Items.Clear();
+            OnPropertyChanged(nameof(HasPendingUpdates));
             WingetAvailable = updates is not null;
             if (updates is null)
             {
@@ -80,7 +84,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
             SubText = updates.Count == 0
                 ? "Seuls les logiciels connus de winget sont vérifiés."
                 : "Décoche ceux que tu ne veux pas toucher, puis clique sur « Mettre à jour ».";
-            OnPropertyChanged(nameof(UpdateCount));
+            OnPropertyChanged(nameof(UpdateCount)); OnPropertyChanged(nameof(HasPendingUpdates));
             Logger.Info($"Analyse des logiciels : {updates.Count} mise(s) à jour");
         }
         catch (OperationCanceledException)
@@ -139,7 +143,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
                 ? PilotesViewModel.Plural(succeeded, "logiciel mis à jour", "logiciels mis à jour")
                 : $"{PilotesViewModel.Plural(succeeded, "logiciel mis à jour", "logiciels mis à jour")}, {failed} en échec";
             SubText = failed == 0 ? "Tout s'est bien passé." : "Regarde le journal en bas de l'écran pour comprendre pourquoi.";
-            OnPropertyChanged(nameof(UpdateCount));
+            OnPropertyChanged(nameof(UpdateCount)); OnPropertyChanged(nameof(HasPendingUpdates));
         }
         catch (OperationCanceledException)
         {
@@ -149,7 +153,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
                 item.Detail = "Mise à jour annulée";
             }
             Headline = "Mise à jour annulée";
-            SubText = $"{succeeded} logiciel(s) mis à jour avant l'annulation.";
+            SubText = PilotesViewModel.Plural(succeeded, "logiciel mis à jour", "logiciels mis à jour") + " avant l'annulation.";
         }
         catch (Exception ex)
         {

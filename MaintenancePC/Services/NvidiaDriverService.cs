@@ -163,7 +163,7 @@ public static class NvidiaDriverService
 
             // ── Installation silencieuse (options officielles de l'installeur NVIDIA) ──
             token.ThrowIfCancellationRequested();
-            progress.Report((-1, "Installation du pilote NVIDIA… L'écran peut clignoter, ne ferme pas le PC."));
+            progress.Report((-1, "Installation du pilote NVIDIA… L'écran peut clignoter, n'éteins pas le PC."));
             Logger.Info($"Installation du pilote NVIDIA {driver.LatestVersion}");
 
             // Volontairement non enregistré dans AppLifetime : on ne tue jamais une installation de pilote en cours.
@@ -178,7 +178,7 @@ public static class NvidiaDriverService
                 .Where(c => c.Vendor == "NVIDIA").Select(c => ToNvidiaVersion(c.DriverVersion)).FirstOrDefault() ?? "");
 
             if (now == driver.LatestVersion)
-                return (true, $"Pilote {now} installé. Redémarre le PC pour terminer.");
+                return (true, $"Pilote NVIDIA {now} installé. Redémarre le PC pour terminer.");
             return code == 0
                 ? (true, $"Installation terminée. Redémarre le PC : la nouvelle version s'affichera ensuite (actuelle : {now}).")
                 : (false, $"L'installeur NVIDIA a renvoyé le code {code}. Version actuelle : {now}.");

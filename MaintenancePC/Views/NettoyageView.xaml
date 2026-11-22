@@ -9,8 +9,12 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- En-tête : bouton rond + résultat -->
-        <Grid Margin="0,0,0,22">
+        <!-- Avant la première analyse : juste le gros bouton, au centre -->
+        <ContentControl Grid.RowSpan="3" Content="{Binding}" ContentTemplate="{StaticResource StartHero}" Focusable="False"
+                        Visibility="{Binding HasScanned, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
+
+        <!-- Après l'analyse : en-tête compact (bouton rond + résultat) -->
+        <Grid Margin="0,0,0,22" Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -64,8 +68,21 @@
         </ScrollViewer>
 
         <!-- Barre d'action -->
-        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False"
-                   Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
+        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False">
+            <DockPanel.Style>
+                <Style TargetType="DockPanel">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding HasScanned}" Value="True" />
+                                <Condition Binding="{Binding IsBusy}" Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DockPanel.Style>
             <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{Binding CleanLabel}"
                     Command="{Binding CleanCommand}" MinWidth="130" />
             <TextBlock DockPanel.Dock="Right" Text="{Binding SelectionText}" VerticalAlignment="Center" Margin="0,0,18,0"

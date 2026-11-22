@@ -10,8 +10,12 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- En-tête : bouton rond + résultat -->
-        <Grid Margin="0,0,0,22">
+        <!-- Avant la première analyse : juste le gros bouton, au centre -->
+        <ContentControl Grid.RowSpan="4" Content="{Binding}" ContentTemplate="{StaticResource StartHero}" Focusable="False"
+                        Visibility="{Binding HasScanned, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
+
+        <!-- Après l'analyse : en-tête compact (bouton rond + résultat) -->
+        <Grid Margin="0,0,0,22" Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -34,11 +38,13 @@
                     <DataTemplate>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="20" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="30" />
                             </Grid.ColumnDefinitions>
-                            <CheckBox IsChecked="{Binding IsSelected}" />
+                            <!-- Plus de case à cocher une fois le logiciel mis à jour -->
+                            <CheckBox IsChecked="{Binding IsSelected}"
+                                      Visibility="{Binding Status, Converter={StaticResource EqualsToVis}, ConverterParameter=!Ok}" />
                             <StackPanel Grid.Column="1" Margin="14,0">
                                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource SmallMutedText}" />
@@ -51,9 +57,22 @@
             </ListBox>
         </Grid>
 
-        <!-- Barre d'action -->
-        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False"
-                   Visibility="{Binding Items.Count, Converter={StaticResource EqualsToVis}, ConverterParameter=!0}">
+        <!-- Barre d'action : visible seulement s'il reste un logiciel à mettre à jour et que rien n'est en cours -->
+        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False">
+            <DockPanel.Style>
+                <Style TargetType="DockPanel">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding HasPendingUpdates}" Value="True" />
+                                <Condition Binding="{Binding IsBusy}" Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DockPanel.Style>
             <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Mettre à jour"
                     Command="{Binding UpgradeCommand}" MinWidth="130" />
             <TextBlock DockPanel.Dock="Right" Text="{Binding SelectionText}" VerticalAlignment="Center" Margin="0,0,18,0"

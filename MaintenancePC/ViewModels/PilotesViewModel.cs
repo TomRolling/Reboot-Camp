@@ -18,13 +18,12 @@ public sealed partial class PilotesViewModel : PageViewModel
 {
     private readonly WindowsUpdateService _windowsUpdate = new();
     private List<DriverInfo> _allDrivers = [];
-    private bool _linksLoaded;
 
     public ObservableCollection<DriverUpdate> Updates { get; } = [];
     public ObservableCollection<DeviceProblem> Problems { get; } = [];
     public ObservableCollection<DriverInfo> Drivers { get; } = [];
 
-    /// <summary>Boutons « page du fabricant », adaptés au matériel de ce PC.</summary>
+    /// <summary>Boutons « page du fabricant », affichés seulement quand ils servent (carte AMD/Intel, périphérique en erreur).</summary>
     public ObservableCollection<SupportLink> Links { get; } = [];
 
     public IReadOnlyList<SectionTab> Tabs { get; } =
@@ -50,19 +49,13 @@ public sealed partial class PilotesViewModel : PageViewModel
         UpdatesMessage = "";
     }
 
-    /// <summary>À l'ouverture de l'onglet : on reconnaît le matériel pour afficher les bons liens (simple lecture).</summary>
-    public override async void OnNavigatedTo()
+    /// <summary>Vrai tant qu'il reste au moins un pilote à installer (sinon la barre d'action disparaît).</summary>
+    public bool HasPendingUpdates => Updates.Any(u => u.Status != Status.Ok);
+
+    private void RefreshPending()
     {
-        if (_linksLoaded) return;
-        _linksLoaded = true;
-        try
-        {
-            foreach (var link in await Task.Run(HardwareService.GetSupportLinks)) Links.Add(link);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error("Détection du matériel", ex);
-        }
+        OnPropertyChanged(nameof(HasPendingUpdates));
+        Tabs[0].Badge = Updates.Count(u => u.Status != Status.Ok).ToString();
     }
 
     partial void OnFilterTextChanged(string value) => ApplyFilter();
@@ -117,6 +110,7 @@ public sealed partial class PilotesViewModel : PageViewModel
             }
 
             // Carte graphique NVIDIA : on demande directement à NVIDIA quel est le dernier pilote.
+            bool nvidiaLinkNeeded = false;
             var cards = await Task.Run(HardwareService.GetGraphicsCards, token);
             foreach (var card in cards.Where(c => c.Vendor == "NVIDIA"))
             {
@@ -125,7 +119,10 @@ public sealed partial class PilotesViewModel : PageViewModel
                 {
                     var driver = await NvidiaDriverService.CheckAsync(card, token);
                     if (driver is null)
-                        notes.Add($"{card.Name} : carte non reconnue par le service NVIDIA, utilise le bouton « Pilotes NVIDIA ».");
+                    {
+                        nvidiaLinkNeeded = true;
+                        notes.Add($"{card.Name} : carte non reconnue par le service NVIDIA, utilise le bouton « Pilotes NVIDIA » ci-dessous.");
+                    }
                     else if (driver.IsNewer)
                         updates.Insert(0, new DriverUpdate(driver));
                     else
@@ -134,13 +131,14 @@ public sealed partial class PilotesViewModel : PageViewModel
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
                 catch (Exception ex)
                 {
-                    notes.Add("Le service NVIDIA n'a pas répondu, utilise le bouton « Pilotes NVIDIA ».");
+                    nvidiaLinkNeeded = true;
+                    notes.Add("Le service NVIDIA n'a pas répondu, utilise le bouton « Pilotes NVIDIA » ci-dessous.");
                     Logger.Error("Recherche du pilote NVIDIA", ex);
                 }
                 break;   // une seule carte NVIDIA suffit : le pilote est commun
             }
             if (cards.Any(c => c.Vendor is "AMD" or "Intel"))
-                notes.Add("Carte graphique AMD/Intel : pas de mise à jour automatique fiable, passe par le bouton du fabricant en haut à droite.");
+                notes.Add("Carte graphique AMD ou Intel : pas de mise à jour automatique fiable, passe par le bouton du fabricant ci-dessous.");
 
             Report(100, "Analyse terminée.");
 
@@ -152,7 +150,22 @@ public sealed partial class PilotesViewModel : PageViewModel
 
             if (updates.Count == 0) notes.Insert(0, "Aucune mise à jour de pilote à installer.");
             UpdatesMessage = string.Join(Environment.NewLine, notes);
-            Tabs[0].Badge = Updates.Count.ToString();
+
+            // Liens vers les fabricants : uniquement ceux qui servent à quelque chose sur ce PC.
+            bool hasErrors = problems.Any(p => !p.IsDisabledOnly);
+            Links.Clear();
+            foreach (var link in await Task.Run(HardwareService.GetSupportLinks, token))
+            {
+                bool useful = link.Label switch
+                {
+                    "Pilotes NVIDIA" => nvidiaLinkNeeded,
+                    "Pilotes AMD" or "Pilotes Intel" => true,
+                    _ => hasErrors,   // support du fabricant du PC : utile quand un périphérique est en erreur
+                };
+                if (useful) Links.Add(link);
+            }
+
+            RefreshPending();
             Tabs[1].Badge = Problems.Count.ToString();
             Tabs[2].Badge = _allDrivers.Count.ToString();
             SelectedTab = Updates.Count > 0 ? 0 : ErrorCount > 0 ? 1 : SelectedTab;
@@ -253,6 +266,11 @@ public sealed partial class PilotesViewModel : PageViewModel
                 var (ok, message) = await NvidiaDriverService.DownloadAndInstallAsync(item.Nvidia!, progress, token);
                 item.Status = ok ? Status.Ok : Status.Error;
                 item.StatusText = ok ? "Installé" : "Échec";
+                if (ok)
+                {
+                    item.IsSelected = false;
+                    item.Details = $"NVIDIA  ·  version {item.Nvidia!.LatestVersion} installée (avant : {item.Nvidia.InstalledVersion})";
+                }
                 if (ok) { succeeded++; reboot = true; } else failed++;
                 SubText = message;
                 Logger.Info($"Pilote NVIDIA : {message}");
@@ -285,6 +303,7 @@ public sealed partial class PilotesViewModel : PageViewModel
         }
         finally
         {
+            RefreshPending();
             EndOperation();
         }
     }

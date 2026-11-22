@@ -184,7 +184,7 @@ public sealed partial class NettoyageViewModel : PageViewModel
 
         string text = simulate ? $"{Format.Size(result.Freed)} seraient libérés" : $"{Format.Size(result.Freed)} libérés";
         if (result.Skipped > 0)
-            text += $"  ·  {result.Skipped} fichier(s) en cours d'utilisation ignoré(s)";
+            text += (result.Skipped == 1 ? "  ·  1 fichier en cours d'utilisation ignoré" : $"  ·  {result.Skipped} fichiers en cours d'utilisation ignorés");
         return text;
     }
 }

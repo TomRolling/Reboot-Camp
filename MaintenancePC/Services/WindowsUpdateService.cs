@@ -13,7 +13,7 @@ public sealed partial class DriverUpdate : ObservableObject
     internal NvidiaDriver? Nvidia { get; }
 
     public string Title { get; }
-    public string Details { get; }
+    [ObservableProperty] public partial string Details { get; set; }
 
     [ObservableProperty] public partial bool IsSelected { get; set; }
     [ObservableProperty] public partial Status Status { get; set; }

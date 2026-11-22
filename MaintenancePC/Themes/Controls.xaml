@@ -256,6 +256,20 @@
         </Setter>
     </Style>
 
+    <!-- ═════════════ Écran de départ d'un onglet : gros bouton centré, tant qu'on n'a pas encore analysé ═════════════ -->
+
+    <DataTemplate x:Key="StartHero">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
+            <c:RingButton Width="190" Height="190"
+                          Command="{Binding RingCommand}" IsBusy="{Binding IsBusy}" Progress="{Binding Progress}"
+                          Content="{Binding RingText}" Caption="{Binding RingCaption}" />
+            <TextBlock Text="{Binding Headline}" Style="{StaticResource HeadlineText}"
+                       HorizontalAlignment="Center" TextAlignment="Center" Margin="0,26,0,0" />
+            <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
+                       HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0" MaxHeight="60" />
+        </StackPanel>
+    </DataTemplate>
+
     <!-- ═════════════ Icône d'état (tourne quand « en cours ») ═════════════ -->
 
     <Style x:Key="StatusIcon" TargetType="ContentControl">

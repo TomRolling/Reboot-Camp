@@ -120,9 +120,18 @@ public sealed partial class ComposantsViewModel : PageViewModel
 
                 if (ok)
                 {
+                    // On ne croit pas winget sur parole : on revérifie que le composant est réellement là.
                     string? version = await Task.Run(() => ComponentService.DetectAll([item], token)[item], token);
-                    Apply(item, version ?? "");
-                    item.Detail = version is { Length: > 0 } ? $"{message}  ·  {version}" : message;
+                    Apply(item, version);
+                    if (version is null)
+                    {
+                        failures++;
+                        item.Detail = "winget annonce une réussite, mais le composant n'apparaît toujours pas sur le PC";
+                    }
+                    else
+                    {
+                        item.Detail = version.Length > 0 ? $"{message}  ·  {version}" : message;
+                    }
                 }
                 else
                 {

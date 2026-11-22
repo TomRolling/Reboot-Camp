@@ -138,7 +138,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
                 ? new("Windows Update", "Un redémarrage est nécessaire pour finir d'installer des mises à jour.", Status.Warning)
                 : pending == 0
                     ? new("Windows Update", "Windows est à jour", Status.Ok)
-                    : new("Windows Update", $"{pending} mise(s) à jour en attente. Clique sur « Ouvrir Windows Update ».", Status.Warning);
+                    : new("Windows Update", (pending == 1 ? "1 mise à jour en attente" : $"{pending} mises à jour en attente") + ". Clique sur « Ouvrir Windows Update ».", Status.Warning);
         }
         catch (OperationCanceledException)
         {
