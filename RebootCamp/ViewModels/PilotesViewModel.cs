@@ -44,8 +44,9 @@ public sealed partial class PilotesViewModel : PageViewModel
     public int ErrorCount => Problems.Count(p => !p.IsDisabledOnly);
 
     public PilotesViewModel() : base(
-        "Pilotes", "", "Prêt à analyser",
-        "Liste les pilotes, repère les périphériques en erreur et cherche les mises à jour.")
+        "Pilotes", "", "Analyser les pilotes",
+        "Liste les pilotes, repère les périphériques en erreur et cherche les mises à jour.",
+        ringCaption: "les pilotes")
     {
         CreateRestorePoint = true;
         BackupDrivers = true;
@@ -90,7 +91,7 @@ public sealed partial class PilotesViewModel : PageViewModel
     public async Task RunScanAsync(CancellationToken external = default)
     {
         if (IsBusy) return;
-        var token = BeginOperation("Analyse en cours…", "Lecture des pilotes installés…", external);
+        var token = BeginOperation("Analyse des pilotes…", "Lecture des pilotes installés…", external);
         try
         {
             Report(5, "Lecture des pilotes installés…");
@@ -224,7 +225,7 @@ public sealed partial class PilotesViewModel : PageViewModel
         var selected = Updates.Where(u => u.IsSelected && u.Status != Status.Ok).ToList();
         if (IsBusy || selected.Count == 0) return;
 
-        var token = BeginOperation("Installation en cours…", "Préparation…");
+        var token = BeginOperation("Installation des pilotes…", "Préparation…", installs: true);
         try
         {
             // ── Filets de sécurité avant de toucher aux pilotes ──
@@ -307,6 +308,7 @@ public sealed partial class PilotesViewModel : PageViewModel
                 : reboot ? "Redémarre le PC pour terminer l'installation."
                 : cancelled ? "Installation interrompue à ta demande."
                 : "Installation terminée.";
+            if (reboot) RestartService.Need("Les pilotes installés ne seront actifs qu'après un redémarrage du PC.");
         }
         catch (OperationCanceledException)
         {
@@ -344,7 +346,7 @@ public sealed partial class PilotesViewModel : PageViewModel
         if (IsBusy) return;
         bool isAmd = link.Kind == LinkKind.AmdTool;
         string tool = isAmd ? "l'outil AMD" : "l'assistant Intel";
-        var token = BeginOperation($"Préparation de {tool}…", "Préparation…");
+        var token = BeginOperation($"Préparation de {tool}…", "Préparation…", installs: true);
         try
         {
             // Filet de sécurité. S'il échoue (protection du système désactivée), on continue : c'est noté dans le journal.

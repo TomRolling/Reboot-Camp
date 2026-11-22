@@ -57,6 +57,7 @@ Pour publier une version : augmenter `<Version>` dans le `.csproj`, faire un com
 - Aucun démarrage automatique : pas de clé Run, pas de tâche planifiée, pas de service, pas d'icône de notification.
 - Aucune analyse au lancement : tout part d'un clic. Seule la vérification de version ci-dessus est automatique.
 - Fermer la fenêtre arrête tout : les opérations en cours sont annulées et les processus lancés (winget, dism, sfc) sont tués. Seule exception : une installation de pilote NVIDIA déjà commencée va jusqu'au bout, car l'interrompre laisserait l'écran sans pilote.
+- Aucun redémarrage du PC sans accord : quand il en faut un, une fenêtre propose « Redémarrer maintenant » ou « Plus tard ». Pendant une installation, l'appli retient aussi les redémarrages que certains installeurs déclenchent d'eux-mêmes (un installeur qui force l'arrêt de Windows ne peut toutefois pas être bloqué).
 - Pas de télémétrie, pas de publicité. Le réseau n'est utilisé que par Windows Update, winget et le service de pilotes de NVIDIA, quand on le demande.
 - Pas de « nettoyage du registre », pas de BIOS ni de firmware.
 

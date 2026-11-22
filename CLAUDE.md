@@ -40,6 +40,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **Toujours un aperçu avant suppression** : liste des catégories, taille estimée, cases à cocher. On supprime seulement ce qui est coché.
 - On ne supprime **que** dans une liste blanche de dossiers connus (ci-dessous). Jamais ailleurs. Jamais de « nettoyage du registre ».
 - Fichiers verrouillés/en cours d'utilisation : on les ignore sans planter.
+- **Jamais de redémarrage du PC sans accord** (demande de Tom du 22/11/2026, après qu'un installeur lancé par winget a redémarré son PC) : quand un redémarrage est nécessaire, une fenêtre propose « Redémarrer maintenant » ou « Plus tard » (`RestartService`, `Views/RestartDialog`). Pendant une installation (`BeginOperation(..., installs: true)`), l'appli retient les redémarrages demandés par les installeurs. Ne jamais passer `--allow-reboot` à winget.
 - **Tests automatiques** (ajoutés le 22/11/2026, accord de Tom pour xUnit) : `RebootCamp.Tests` vérifie les règles du nettoyage sur de faux dossiers. Lancer `dotnet test` après toute modification de `CleanupService` ; `publier.ps1` refuse de publier si un test échoue.
 - Journal des actions dans `%LOCALAPPDATA%\RebootCamp\logs` (rotation, max ~1 Mo).
 
@@ -49,6 +50,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **Animations** pendant les analyses et mises à jour (anneau qui tourne, barres de progression fluides, transitions entre onglets), dans l'esprit de Driver Booster. Aucune animation au repos (0 % CPU).
 - Accueil : résumé (nb de pilotes à mettre à jour, espace récupérable, composants manquants) rempli seulement après un bouton « Analyser tout ».
 - Gros bouton d'action par onglet, listes claires avec icônes d'état (OK / à mettre à jour / erreur).
+- Chaque onglet a son propre libellé sur le bouton rond et son propre titre (« Analyser les pilotes », « Analyser les logiciels », « Analyser avant de nettoyer », « Vérifier les composants ») : on doit savoir sur quelle page on est sans regarder la barre latérale (demande de Tom du 22/11/2026).
 
 ## Contenu des onglets
 

@@ -29,6 +29,8 @@ public partial class MainWindow : Window
 
         var handle = new WindowInteropHelper(this).Handle;
         HwndSource.FromHwnd(handle)?.AddHook(BlockResizeBorders);
+        HwndSource.FromHwnd(handle)?.AddHook(HoldRestartDuringInstall);
+        RestartService.Attach(handle, AskToRestart);
         int enabled = 1;
         // Windows 11 et Windows 10 récent utilisent l'attribut 20 ; les Windows 10 d'avant 2020 utilisaient le 19.
         // Si les deux échouent (Windows encore plus ancien), la barre de titre reste claire : sans gravité.
@@ -75,7 +77,34 @@ public partial class MainWindow : Window
         return IntPtr.Zero;
     }
 
+    /// <summary>
+    /// Avant d'arrêter ou de redémarrer le PC, Windows demande à chaque fenêtre si elle est d'accord.
+    /// Pendant une installation on répond non : un installeur qui redémarre le PC de lui-même est retenu,
+    /// et la question sera posée à l'utilisateur à la fin de l'opération.
+    /// </summary>
+    private static IntPtr HoldRestartDuringInstall(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (message != WM_QUERYENDSESSION || !RestartService.IsGuarding) return IntPtr.Zero;
+
+        RestartService.OnRestartBlocked();
+        handled = true;
+        return IntPtr.Zero;   // 0 = « non, pas maintenant »
+    }
+
+    /// <summary>Affiche la question « Redémarrer maintenant / Plus tard ». Rien ne redémarre sans le clic.</summary>
+    private void AskToRestart(string reason)
+    {
+        // BeginInvoke : la question s'affiche une fois que l'opération en cours a fini de mettre l'écran à jour.
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!IsLoaded) return;
+            var dialog = new Views.RestartDialog(reason) { Owner = this };
+            if (dialog.ShowDialog() == true) RestartService.RestartNow();
+        });
+    }
+
     // Messages et valeurs documentés par Microsoft (winuser.h).
+    private const int WM_QUERYENDSESSION = 0x0011;
     private const int WM_NCHITTEST = 0x0084;
     private const long HTLEFT = 10, HTBOTTOMRIGHT = 17;
     private const int HTBORDER = 18;

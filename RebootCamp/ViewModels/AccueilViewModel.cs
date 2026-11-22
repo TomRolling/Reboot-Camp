@@ -46,7 +46,8 @@ public sealed partial class AccueilViewModel : PageViewModel
     public AccueilViewModel(PilotesViewModel pilotes, LogicielsViewModel logiciels, NettoyageViewModel nettoyage,
         ComposantsViewModel composants, Action<PageViewModel> navigate) : base(
         "Accueil", "", "Analyser tout le PC",
-        "Un clic pour vérifier les pilotes, les logiciels, l'espace récupérable et les composants. Rien n'est modifié.")
+        "Un clic pour vérifier les pilotes, les logiciels, l'espace récupérable et les composants. Rien n'est modifié.",
+        ringCaption: "tout le PC")
     {
         _pilotes = pilotes;
         _logiciels = logiciels;
@@ -89,7 +90,7 @@ public sealed partial class AccueilViewModel : PageViewModel
             return;
         }
 
-        var token = BeginOperation("Analyse en cours…", "Analyse des pilotes…");
+        var token = BeginOperation("Analyse de tout le PC…", "Analyse des pilotes…");
         try
         {
 

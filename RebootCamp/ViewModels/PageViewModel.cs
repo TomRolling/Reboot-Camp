@@ -28,23 +28,38 @@ public abstract partial class PageViewModel : ObservableObject
     [ObservableProperty] public partial string RingText { get; set; }
     [ObservableProperty] public partial string RingCaption { get; set; }
 
-    protected PageViewModel(string title, string icon, string headline, string subText)
+    // Ce que le bouton rond affiche au repos : un verbe et, en petit dessous, ce qu'il concerne.
+    // Chaque onglet a le sien, pour qu'on sache toujours sur quelle page on est.
+    private readonly string _idleRingText, _idleRingCaption;
+    private bool _guarding;
+
+    protected PageViewModel(string title, string icon, string headline, string subText,
+        string ringText = "ANALYSER", string ringCaption = "")
     {
         Title = title;
         Icon = icon;
         Headline = headline;
         SubText = subText;
         Progress = -1;
-        RingText = "ANALYSER";
-        RingCaption = "";
+        RingText = _idleRingText = ringText;
+        RingCaption = _idleRingCaption = ringCaption;
     }
 
     /// <summary>Appelé quand l'utilisateur ouvre cet onglet.</summary>
     public virtual void OnNavigatedTo() { }
 
     /// <summary>Démarre une opération longue : l'anneau s'anime et le bouton devient « Annuler ».</summary>
-    protected CancellationToken BeginOperation(string headline, string subText, CancellationToken external = default)
+    /// <param name="installs">
+    /// Vrai si l'opération installe quelque chose : tant qu'elle dure, un redémarrage du PC déclenché par un
+    /// installeur est retenu (voir <see cref="RestartService"/>).
+    /// </param>
+    protected CancellationToken BeginOperation(string headline, string subText, CancellationToken external = default, bool installs = false)
     {
+        if (installs && !_guarding)
+        {
+            _guarding = true;
+            RestartService.BeginGuard();
+        }
         _operation?.Dispose();
         _operation = AppLifetime.CreateOperation(external);
         Headline = headline;
@@ -67,8 +82,31 @@ public abstract partial class PageViewModel : ObservableObject
     {
         IsBusy = false;
         Progress = -1;
-        RingText = "ANALYSER";
-        RingCaption = "";
+        RingText = _idleRingText;
+        RingCaption = _idleRingCaption;
+
+        if (_guarding)
+        {
+            _guarding = false;
+            _ = ReleaseGuardLaterAsync();
+        }
+        // Si l'opération a besoin d'un redémarrage, c'est maintenant qu'on pose la question.
+        RestartService.ProposeIfNeeded();
+    }
+
+    /// <summary>Certains installeurs demandent le redémarrage juste après s'être terminés : on garde la retenue 15 secondes.</summary>
+    private static async Task ReleaseGuardLaterAsync()
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(15), AppLifetime.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // L'appli se ferme.
+        }
+        RestartService.EndGuard();
+        RestartService.ProposeIfNeeded();   // un redémarrage retenu pendant ces 15 secondes
     }
 
     [RelayCommand]

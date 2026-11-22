@@ -85,8 +85,11 @@ public static partial class VendorToolService
             int code = await ProcessRunner.RunAsync("winget", arguments, output, token);
             Logger.Info($"winget {IntelAssistantId} : code 0x{code:X8}");
 
+            if (RestartService.IsRebootCode(code))
+                RestartService.Need("L'assistant Intel a besoin d'un redémarrage du PC pour terminer son installation.");
+
             // 0 = installé ; 0x8A15002B = déjà installé et à jour.
-            return code is 0 or unchecked((int)0x8A15002B)
+            return code is 0 or unchecked((int)0x8A15002B) || RestartService.IsSuccessPendingReboot(code)
                 ? (true, "L'assistant Intel est installé. Ouvre « Intel Driver & Support Assistant » depuis le menu Démarrer : il liste les pilotes à mettre à jour.")
                 : (false, $"L'installation de l'assistant Intel a échoué (code 0x{code:X8}).");
         }

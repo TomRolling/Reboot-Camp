@@ -249,19 +249,21 @@ public sealed partial class ExtrasViewModel : PageViewModel
     // ───────────────────────── Réparation ─────────────────────────
 
     [RelayCommand]
-    private Task SfcAsync() => RunToolsAsync("Vérification des fichiers système (SFC)",
+    private Task SfcAsync() => RunToolsAsync("Vérification des fichiers système (SFC)", null,
         ("sfc.exe", "/scannow", Encoding.Unicode));   // sfc écrit en UTF-16
 
     [RelayCommand]
-    private Task DismAsync() => RunToolsAsync("Réparation de l'image Windows (DISM)",
+    private Task DismAsync() => RunToolsAsync("Réparation de l'image Windows (DISM)", null,
         ("dism.exe", "/Online /Cleanup-Image /RestoreHealth", ProcessRunner.OemEncoding));
 
     [RelayCommand]
     private Task NetworkAsync() => RunToolsAsync("Réparation de la connexion Internet",
+        "La réparation de la connexion Internet ne prend effet qu'après un redémarrage du PC.",
         ("ipconfig.exe", "/flushdns", ProcessRunner.OemEncoding),
         ("netsh.exe", "winsock reset", ProcessRunner.OemEncoding));
 
-    private async Task RunToolsAsync(string title, params (string Tool, string Arguments, Encoding Encoding)[] steps)
+    /// <param name="restartReason">Si l'outil n'agit qu'après un redémarrage : la phrase affichée pour le proposer.</param>
+    private async Task RunToolsAsync(string title, string? restartReason, params (string Tool, string Arguments, Encoding Encoding)[] steps)
     {
         if (IsBusy) return;
         var token = BeginOperation("Extras", title);
@@ -291,6 +293,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
             RepairStatus = worst == 0
                 ? $"{title} : terminé. Lis le résultat ci-dessous."
                 : $"{title} : terminé avec le code {worst}. Lis le détail ci-dessous.";
+            if (worst == 0 && restartReason is not null) RestartService.Need(restartReason);
         }
         catch (OperationCanceledException)
         {

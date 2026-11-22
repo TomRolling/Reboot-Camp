@@ -23,8 +23,9 @@ public sealed partial class NettoyageViewModel : PageViewModel
     public long RecoverableBytes { get; private set; }
 
     public NettoyageViewModel() : base(
-        "Nettoyage", "", "Prêt à analyser",
-        "Calcule l'espace récupérable. Rien n'est supprimé sans ton accord.")
+        "Nettoyage", "", "Analyser avant de nettoyer",
+        "Calcule l'espace récupérable. Rien n'est supprimé sans ton accord.",
+        ringCaption: "avant nettoyage")
     {
         CreateRestorePoint = true;
         SelectionText = "";
@@ -60,7 +61,7 @@ public sealed partial class NettoyageViewModel : PageViewModel
     public async Task RunScanAsync(CancellationToken external = default)
     {
         if (IsBusy) return;
-        var token = BeginOperation("Analyse en cours…", "Calcul de l'espace récupérable…", external);
+        var token = BeginOperation("Analyse avant nettoyage…", "Calcul de l'espace récupérable…", external);
         try
         {
             long total = 0;

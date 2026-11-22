@@ -101,6 +101,13 @@ public static partial class SoftwareUpdateService
         int code = await ProcessRunner.RunAsync("winget", arguments, output, token);
 
         Logger.Info($"winget upgrade {update.Id} : code 0x{code:X8}");
+        if (RestartService.IsRebootCode(code))
+        {
+            RestartService.Need($"« {update.Name} » a besoin d'un redémarrage du PC pour terminer sa mise à jour.");
+            return RestartService.IsSuccessPendingReboot(code)
+                ? (true, "Mis à jour, actif après un redémarrage")
+                : (false, "Redémarre le PC, puis relance la mise à jour.");
+        }
         return code switch
         {
             0 => (true, "Mis à jour"),

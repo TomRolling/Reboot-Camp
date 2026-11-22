@@ -229,6 +229,13 @@ public static class ComponentService
         int code = await ProcessRunner.RunAsync("winget", arguments, output, token);
 
         Logger.Info($"winget {item.WingetId} : code 0x{code:X8}");
+        if (RestartService.IsRebootCode(code))
+        {
+            RestartService.Need($"« {item.Name} » a besoin d'un redémarrage du PC pour terminer son installation.");
+            return RestartService.IsSuccessPendingReboot(code)
+                ? (true, "Installé, actif après un redémarrage")
+                : (false, "Redémarre le PC, puis relance l'installation.");
+        }
         return code switch
         {
             0 => (true, "Installé"),

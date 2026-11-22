@@ -30,8 +30,9 @@ public sealed partial class LogicielsViewModel : PageViewModel
     public bool HasPendingUpdates => UpdateCount > 0;
 
     public LogicielsViewModel() : base(
-        "Logiciels", "", "Prêt à analyser",
-        "Cherche les mises à jour de tes logiciels installés (navigateur, Discord, VLC…).")
+        "Logiciels", "", "Analyser les logiciels",
+        "Cherche les mises à jour de tes logiciels installés (navigateur, Discord, VLC…).",
+        ringCaption: "les logiciels")
     {
         Message = "";
         SelectionText = "";
@@ -53,7 +54,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
     public async Task RunScanAsync(CancellationToken external = default)
     {
         if (IsBusy) return;
-        var token = BeginOperation("Analyse en cours…", "Recherche des mises à jour de logiciels…", external);
+        var token = BeginOperation("Analyse des logiciels…", "Recherche des mises à jour de logiciels…", external);
         try
         {
             var updates = await SoftwareUpdateService.ListAsync(token);
@@ -122,7 +123,7 @@ public sealed partial class LogicielsViewModel : PageViewModel
         var selected = Items.Where(i => i.IsSelected && i.Status != Status.Ok).ToList();
         if (IsBusy || selected.Count == 0) return;
 
-        var token = BeginOperation("Mise à jour en cours…", "Préparation…");
+        var token = BeginOperation("Mise à jour des logiciels…", "Préparation…", installs: true);
         ShowLog = true;
         Log.Clear();
         var output = new Progress<string>(Log.Add);

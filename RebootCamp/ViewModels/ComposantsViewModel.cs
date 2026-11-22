@@ -20,8 +20,9 @@ public sealed partial class ComposantsViewModel : PageViewModel
     public int MissingCount => Items.Count(i => HasScanned && !i.IsInstalled);
 
     public ComposantsViewModel() : base(
-        "Composants", "", "Prêt à vérifier",
-        "Vérifie DirectX, Visual C++ et .NET, les composants dont les jeux et logiciels ont besoin.")
+        "Composants", "", "Vérifier les composants",
+        "Vérifie DirectX, Visual C++ et .NET, les composants dont les jeux et logiciels ont besoin.",
+        ringText: "VÉRIFIER", ringCaption: "les composants")
     {
         WingetWarning = "";
         Items = new ObservableCollection<ComponentItem>(ComponentService.CreateItems());
@@ -37,7 +38,7 @@ public sealed partial class ComposantsViewModel : PageViewModel
     public async Task RunScanAsync(CancellationToken external = default)
     {
         if (IsBusy) return;
-        var token = BeginOperation("Vérification en cours…", "Vérification des composants…", external);
+        var token = BeginOperation("Vérification des composants…", "Recherche de DirectX, Visual C++ et .NET…", external);
         try
         {
             Report(10, "Recherche de winget…");
@@ -102,7 +103,7 @@ public sealed partial class ComposantsViewModel : PageViewModel
     {
         if (IsBusy || items.Count == 0 || !HasScanned || WingetWarning.Length > 0) return;
 
-        var token = BeginOperation("Installation en cours…", "Préparation…");
+        var token = BeginOperation("Installation des composants…", "Préparation…", installs: true);
         ShowLog = true;
         Log.Clear();
         var output = new Progress<string>(Log.Add);
