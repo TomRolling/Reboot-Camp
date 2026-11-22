@@ -144,8 +144,12 @@ public sealed partial class PilotesViewModel : PageViewModel
                 }
                 break;   // une seule carte NVIDIA suffit : le pilote est commun
             }
-            if (cards.Any(c => c.Vendor is "AMD" or "Intel"))
-                notes.Add("Carte graphique AMD ou Intel : pas de mise à jour automatique fiable, passe par le bouton du fabricant ci-dessous.");
+            // AMD et Intel : pas de service pour connaître le dernier pilote, mais un outil officiel qui s'en charge.
+            string cpu = await Task.Run(HardwareService.GetProcessorVendor, token);
+            bool amd = cpu == "AMD" || cards.Any(c => c.Vendor == "AMD");
+            bool intel = cpu == "Intel" || cards.Any(c => c.Vendor == "Intel");
+            if (amd) notes.Add("Matériel AMD : le bouton ci-dessous lance l'outil officiel d'AMD, qui installe les pilotes Radeon et chipset.");
+            if (intel) notes.Add("Matériel Intel : le bouton ci-dessous installe l'assistant officiel d'Intel (graphique, chipset, Wi-Fi, Bluetooth).");
 
             Report(100, "Analyse terminée.");
 
@@ -166,10 +170,20 @@ public sealed partial class PilotesViewModel : PageViewModel
                 bool useful = link.Label switch
                 {
                     "Pilotes NVIDIA" => nvidiaLinkNeeded,
-                    "Pilotes AMD" or "Pilotes Intel" => true,
+                    "Pilotes AMD" or "Pilotes Intel" => false,   // remplacés par les outils officiels ci-dessous
                     _ => hasErrors,   // support du fabricant du PC : utile quand un périphérique est en erreur
                 };
                 if (useful) Links.Add(link);
+            }
+            if (amd)
+            {
+                Links.Add(new SupportLink("Mettre à jour avec l'outil AMD", "",
+                    "Télécharge l'outil officiel « Auto-Detect and Install » sur amd.com, vérifie sa signature et l'ouvre", LinkKind.AmdTool));
+            }
+            if (intel)
+            {
+                Links.Add(new SupportLink("Installer l'assistant de pilotes Intel", "",
+                    "Installe « Intel Driver & Support Assistant » avec winget. Il reste ensuite en arrière-plan (désactivable dans Extras > Démarrage)", LinkKind.IntelTool));
             }
 
             RefreshPending();
@@ -318,10 +332,56 @@ public sealed partial class PilotesViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private static void OpenLink(SupportLink link)
+    private async Task OpenLinkAsync(SupportLink link)
     {
-        try { Process.Start(new ProcessStartInfo(link.Url) { UseShellExecute = true })?.Dispose(); }
-        catch (Exception ex) { Logger.Error($"Ouverture de {link.Url}", ex); }
+        if (link.Kind == LinkKind.Web)
+        {
+            try { Process.Start(new ProcessStartInfo(link.Url) { UseShellExecute = true })?.Dispose(); }
+            catch (Exception ex) { Logger.Error($"Ouverture de {link.Url}", ex); }
+            return;
+        }
+
+        if (IsBusy) return;
+        bool isAmd = link.Kind == LinkKind.AmdTool;
+        string tool = isAmd ? "l'outil AMD" : "l'assistant Intel";
+        var token = BeginOperation($"Préparation de {tool}…", "Préparation…");
+        try
+        {
+            // Filet de sécurité. S'il échoue (protection du système désactivée), on continue : c'est noté dans le journal.
+            if (CreateRestorePoint)
+            {
+                SubText = "Création d'un point de restauration…";
+                await RestorePointService.CreateAsync(
+                    "MaintenancePC - avant pilotes " + (isAmd ? "AMD" : "Intel"), RestorePointService.DeviceDriverInstall, token);
+            }
+
+            (bool ok, string message) = isAmd
+                ? await VendorToolService.RunAmdToolAsync(new Progress<(double Percent, string Message)>(p =>
+                    {
+                        if (p.Percent >= 0) Report(p.Percent, p.Message);
+                        else { Progress = -1; RingText = "···"; SubText = p.Message; }
+                    }), token)
+                : await VendorToolService.InstallIntelAssistantAsync(new Progress<string>(line => SubText = line), token);
+
+            await Task.Yield();
+            Headline = ok ? (isAmd ? "Outil AMD lancé" : "Assistant Intel installé") : (isAmd ? "Outil AMD indisponible" : "Assistant Intel non installé");
+            SubText = message;
+        }
+        catch (OperationCanceledException)
+        {
+            Headline = "Opération annulée";
+            SubText = "Rien n'a été installé.";
+        }
+        catch (Exception ex)
+        {
+            Headline = "L'opération a échoué";
+            SubText = ex.Message.Trim();
+            Logger.Error(tool, ex);
+        }
+        finally
+        {
+            EndOperation();
+        }
     }
 
     internal static string Plural(int count, string singular, string plural) =>

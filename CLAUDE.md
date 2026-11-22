@@ -23,9 +23,15 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **Aucun** démarrage automatique : pas de clé Run, pas de tâche planifiée, pas de service, pas d'icône dans la barre des tâches/zone de notification.
 - **Fermer la fenêtre = quitter complètement.** Annuler toutes les tâches en cours (`CancellationToken`), tuer les processus enfants (winget, dism…), puis `Application.Shutdown()`. Vérifier dans le Gestionnaire des tâches qu'il ne reste **aucun processus**.
 - **Rien ne tourne tout seul** : aucun scan au lancement, tout se déclenche par un bouton.
+  Seule exception (demande de Tom du 22/11/2026) : à l'ouverture, une requête à GitHub pour savoir si une version plus récente de l'appli existe (`UpdateService`). Rien n'est téléchargé sans clic.
 - Pas de télémétrie, pas de pub, pas de connexion réseau sauf Windows Update et winget quand Tom le demande.
 - Tout en `async` : l'interface ne doit jamais geler. Barre de progression + bouton Annuler sur les opérations longues.
 - Consommation au repos ≈ 0 % CPU, RAM la plus faible possible.
+
+## Mise à jour de l'appli
+- Via les Releases d'un dépôt GitHub **public** : étiquette `vX.Y.Z` + le `.exe` en pièce jointe. Le dépôt est à renseigner dans `UpdateService.Repository` (vide = fonction désactivée).
+- `publier.ps1` fabrique le `.exe` et crée la Release si `gh` est installé.
+- L'exe n'est pas signé : SmartScreen avertit au premier lancement d'un fichier téléchargé par un navigateur. Seule une signature de code le supprime vraiment.
 
 ## Règles de sécurité
 - **Point de restauration système** proposé (case cochée par défaut) avant toute installation de pilote ou gros nettoyage.
@@ -48,7 +54,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - Détection des périphériques **sans pilote ou en erreur** (`Win32_PnPEntity`, `ConfigManagerErrorCode != 0`) en rouge.
 - Mises à jour disponibles via l'API Windows Update : recherche `IsInstalled=0 and Type='Driver'`, affichage, installation de la sélection.
 - Bouton « Page du fabricant » pour la carte graphique NVIDIA et le support Asus (ouvre le navigateur).
-- Pilote graphique NVIDIA : recherché et téléchargé directement chez NVIDIA (`NvidiaDriverService`), signature « NVIDIA Corporation » vérifiée avant exécution, installation silencieuse sur clic (demande de Tom du 22/11/2026). AMD / Intel / chipset : Windows Update + lien vers la page officielle, faute de source officielle automatisable.
+- Pilote graphique NVIDIA : recherché et téléchargé directement chez NVIDIA (`NvidiaDriverService`), signature « NVIDIA Corporation » vérifiée avant exécution, installation silencieuse sur clic (demande de Tom du 22/11/2026). AMD et Intel n'ont pas de service pour connaître le dernier pilote : l'appli télécharge et lance l'outil officiel du fabricant (`VendorToolService` : « Auto-Detect and Install » d'AMD, signature vérifiée ; « Intel Driver & Support Assistant » via winget).
 - Jamais de BIOS ni de firmware. Pas de base de pilotes maison, pas de téléchargement depuis des sites tiers.
 - Avant installation : point de restauration + sauvegarde des pilotes (`pnputil /export-driver`), cases cochées par défaut.
 

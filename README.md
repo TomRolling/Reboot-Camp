@@ -33,10 +33,16 @@ dotnet publish MaintenancePC/MaintenancePC.csproj -c Release -r win-x64 -p:Publi
 
 Le résultat est `MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\MaintenancePC.exe`.
 
+## Mises à jour de l'appli
+
+À l'ouverture, l'appli demande à GitHub s'il existe une version plus récente. Si oui, un encart « Mettre à jour » apparaît dans la barre latérale : un clic télécharge la nouvelle version, vérifie son empreinte, remplace le fichier et relance l'appli.
+
+Pour publier une version : augmenter `<Version>` dans le `.csproj`, lancer `.\publier.ps1`, puis créer sur GitHub une Release étiquetée `vX.Y.Z` avec le `.exe` en pièce jointe (le script le fait tout seul si `gh` est installé). Le dépôt doit être public et renseigné dans `Services/UpdateService.cs`.
+
 ## Ce que l'appli ne fait jamais
 
 - Aucun démarrage automatique : pas de clé Run, pas de tâche planifiée, pas de service, pas d'icône de notification.
-- Aucune analyse au lancement : tout part d'un clic.
+- Aucune analyse au lancement : tout part d'un clic. Seule la vérification de version ci-dessus est automatique.
 - Fermer la fenêtre arrête tout : les opérations en cours sont annulées et les processus lancés (winget, dism, sfc) sont tués. Seule exception : une installation de pilote NVIDIA déjà commencée va jusqu'au bout, car l'interrompre laisserait l'écran sans pilote.
 - Pas de télémétrie, pas de publicité. Le réseau n'est utilisé que par Windows Update, winget et le service de pilotes de NVIDIA, quand on le demande.
 - Pas de « nettoyage du registre », pas de BIOS ni de firmware.
@@ -45,7 +51,8 @@ Le résultat est `MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\Main
 
 - **Windows Update** pour tous les périphériques (y compris chipset et processeur).
 - **NVIDIA** pour la carte graphique GeForce : l'appli interroge le service de nvidia.com, télécharge uniquement depuis `download.nvidia.com`, vérifie la signature numérique « NVIDIA Corporation », puis lance l'installeur en mode silencieux.
-- **AMD et Intel** : pas de source officielle automatisable ; un bouton ouvre la page du fabricant.
+- **AMD** (Radeon et chipset Ryzen) : un bouton télécharge l'outil officiel « Auto-Detect and Install » sur amd.com, vérifie sa signature et l'ouvre. C'est lui qui choisit et installe le pilote.
+- **Intel** (graphique, chipset, Wi-Fi, Bluetooth) : un bouton installe l'assistant officiel « Intel Driver & Support Assistant » avec winget. Cet assistant reste ensuite en arrière-plan ; on peut le désactiver dans Extras > Démarrage.
 
 Avant toute installation, l'appli propose un point de restauration et une sauvegarde des pilotes actuels dans `C:\ProgramData\MaintenancePC\SauvegardePilotes`.
 

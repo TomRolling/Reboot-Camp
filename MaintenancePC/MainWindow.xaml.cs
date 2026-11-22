@@ -11,7 +11,15 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new MainViewModel();
+        var viewModel = new MainViewModel();
+        DataContext = viewModel;
+
+        // Une fois la fenêtre affichée : ménage d'une éventuelle mise à jour précédente, puis vérification de version.
+        Loaded += async (_, _) =>
+        {
+            UpdateService.CleanUpAfterUpdate();
+            await viewModel.CheckForUpdateAsync();
+        };
     }
 
     /// <summary>Appelé quand la fenêtre Windows existe réellement : on peut alors assombrir sa barre de titre.</summary>

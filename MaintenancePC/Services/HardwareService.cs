@@ -2,7 +2,10 @@ using System.Management;
 
 namespace MaintenancePC.Services;
 
-public sealed record SupportLink(string Label, string Url, string ToolTip);
+/// <summary>Web = ouvre une page ; AmdTool / IntelTool = télécharge et lance l'outil officiel du fabricant.</summary>
+public enum LinkKind { Web, AmdTool, IntelTool }
+
+public sealed record SupportLink(string Label, string Url, string ToolTip, LinkKind Kind = LinkKind.Web);
 
 public sealed record GraphicsCard(string Name, string Vendor, string DriverVersion);
 
@@ -44,6 +47,18 @@ public static class HardwareService
             cards.Add(new GraphicsCard(name, vendor, gpu["DriverVersion"] as string ?? ""));
         }
         return cards;
+    }
+
+    /// <summary>« Intel », « AMD » ou vide : sert à proposer l'outil de pilotes du bon fabricant (chipset).</summary>
+    public static string GetProcessorVendor()
+    {
+        foreach (var cpu in Query("SELECT Manufacturer FROM Win32_Processor"))
+        {
+            string maker = cpu["Manufacturer"] as string ?? "";
+            if (maker.Contains("Intel", StringComparison.OrdinalIgnoreCase)) return "Intel";
+            if (maker.Contains("AMD", StringComparison.OrdinalIgnoreCase)) return "AMD";
+        }
+        return "";
     }
 
     /// <summary>Boutons « page du fabricant » adaptés à ce PC : carte(s) graphique(s) puis marque de l'ordinateur.</summary>
