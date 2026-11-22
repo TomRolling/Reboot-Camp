@@ -52,13 +52,24 @@
         <!-- Barre latérale -->
         <Border Grid.Column="0" Background="{StaticResource SidebarBackgroundBrush}">
             <DockPanel>
-                <!-- Logo (le même anneau que l'icône du programme, dessiné ici pour rester net à toutes les tailles) + nom -->
+                <!-- Logo : le même dessin que l'icône du programme (flèche de redémarrage + coche), tracé ici en
+                     vecteurs pour rester net à toutes les tailles. Les coordonnées sont celles d'une grille de 256. -->
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="24,24,20,20">
-                    <Grid Width="24" Height="24" VerticalAlignment="Center">
-                        <Ellipse Stroke="{StaticResource AccentBrush}" StrokeThickness="3.2" />
-                        <Path Data="M 7.4,12.4 L 10.6,15.6 L 16.8,8.8" Stroke="{StaticResource TextBrush}" StrokeThickness="2.2"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
-                    </Grid>
+                    <Viewbox Width="26" Height="26" VerticalAlignment="Center">
+                        <Canvas Width="184" Height="184">
+                            <Canvas.RenderTransform>
+                                <TranslateTransform X="-36" Y="-36" />
+                            </Canvas.RenderTransform>
+                            <!-- Anneau ouvert en haut à droite -->
+                            <Path Data="M 194.57,149.63 A 70,70 0 1 1 165.09,68.64" Stroke="{StaticResource AccentBrush}"
+                                  StrokeThickness="22" StrokeStartLineCap="Round" />
+                            <!-- Pointe de la flèche, dans le prolongement de l'anneau -->
+                            <Path Data="M 199.01,89.84 L 179.40,45.74 L 150.78,91.54 Z" Fill="{StaticResource AccentBrush}" />
+                            <!-- Coche -->
+                            <Path Data="M 92,131 L 118,157 L 166,103" Stroke="{StaticResource TextBrush}" StrokeThickness="20"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                        </Canvas>
+                    </Viewbox>
                     <TextBlock Text="Reboot Camp" FontSize="18" FontWeight="SemiBold" Margin="11,0,0,1"
                                VerticalAlignment="Center" />
                 </StackPanel>
