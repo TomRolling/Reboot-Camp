@@ -1,34 +1,81 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using MaintenancePC.Services;
 
 namespace MaintenancePC.ViewModels;
 
 /// <summary>
-/// Classe de base d'un onglet. La barre latérale affiche <see cref="Icon"/> et <see cref="Title"/>.
+/// Classe de base d'un onglet. Elle porte ce que tous les onglets ont en commun :
+/// le titre/icône de la barre latérale, et l'état du gros bouton rond (occupé, pourcentage, textes).
 /// </summary>
-/// <param name="title">Nom affiché dans la barre latérale et en haut de la page.</param>
-/// <param name="icon">Caractère de la police d'icônes Windows (Segoe Fluent Icons / Segoe MDL2 Assets).</param>
-/// <param name="description">Phrase courte expliquant à quoi sert l'onglet.</param>
-public abstract class PageViewModel(string title, string icon, string description) : ObservableObject
+public abstract partial class PageViewModel : ObservableObject
 {
-    public string Title { get; } = title;
-    public string Icon { get; } = icon;
-    public string Description { get; } = description;
+    private CancellationTokenSource? _operation;
+
+    public string Title { get; }
+
+    /// <summary>Caractère de la police d'icônes Windows (Segoe Fluent Icons / Segoe MDL2 Assets).</summary>
+    public string Icon { get; }
+
+    // [ObservableProperty] génère le code qui prévient l'interface à chaque changement de valeur.
+    [ObservableProperty] public partial bool IsBusy { get; set; }
+
+    /// <summary>Avancement de 0 à 100, ou -1 quand on ne sait pas (l'anneau tourne simplement).</summary>
+    [ObservableProperty] public partial double Progress { get; set; }
+
+    [ObservableProperty] public partial string Headline { get; set; }
+    [ObservableProperty] public partial string SubText { get; set; }
+    [ObservableProperty] public partial string RingText { get; set; }
+    [ObservableProperty] public partial string RingCaption { get; set; }
+
+    protected PageViewModel(string title, string icon, string headline, string subText)
+    {
+        Title = title;
+        Icon = icon;
+        Headline = headline;
+        SubText = subText;
+        Progress = -1;
+        RingText = "ANALYSER";
+        RingCaption = "";
+    }
+
+    /// <summary>Appelé quand l'utilisateur ouvre cet onglet.</summary>
+    public virtual void OnNavigatedTo() { }
+
+    /// <summary>Démarre une opération longue : l'anneau s'anime et le bouton devient « Annuler ».</summary>
+    protected CancellationToken BeginOperation(string headline, string subText, CancellationToken external = default)
+    {
+        _operation?.Dispose();
+        _operation = AppLifetime.CreateOperation(external);
+        Headline = headline;
+        IsBusy = true;
+        Progress = -1;
+        RingText = "···";
+        RingCaption = "Annuler";
+        SubText = subText;
+        return _operation.Token;
+    }
+
+    protected void Report(double percent, string subText)
+    {
+        Progress = percent;
+        RingText = $"{percent:0} %";
+        SubText = subText;
+    }
+
+    protected void EndOperation()
+    {
+        IsBusy = false;
+        Progress = -1;
+        RingText = "ANALYSER";
+        RingCaption = "";
+    }
+
+    [RelayCommand]
+    public void Cancel()
+    {
+        if (!IsBusy) return;
+        RingCaption = "Annulation…";
+        _operation?.Cancel();
+    }
 }
-
-// Les cinq onglets. Ils sont vides pour l'instant : chaque phase remplira le sien
-// (et il sera alors déplacé dans son propre fichier).
-
-public sealed class AccueilViewModel() : PageViewModel(
-    "Accueil", "", "Résumé de l'état du PC. Rien n'est analysé tant que tu ne le demandes pas.");
-
-public sealed class PilotesViewModel() : PageViewModel(
-    "Pilotes", "", "Liste des pilotes, périphériques en erreur et mises à jour via Windows Update.");
-
-public sealed class NettoyageViewModel() : PageViewModel(
-    "Nettoyage", "", "Suppression des fichiers temporaires et des caches, avec aperçu avant suppression.");
-
-public sealed class ComposantsViewModel() : PageViewModel(
-    "Composants", "", "DirectX, Visual C++ et .NET : détection et installation via winget.");
-
-public sealed class ExtrasViewModel() : PageViewModel(
-    "Extras", "", "Démarrage, infos système, santé du disque, réparation et point de restauration.");

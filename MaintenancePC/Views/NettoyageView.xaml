@@ -1,0 +1,75 @@
+<UserControl x:Class="MaintenancePC.Views.NettoyageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:MaintenancePC.Controls">
+    <Grid Margin="32,28,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- En-tête : bouton rond + résultat -->
+        <Grid Margin="0,0,0,22">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <c:RingButton Width="128" Height="128"
+                          Command="{Binding RingCommand}" IsBusy="{Binding IsBusy}" Progress="{Binding Progress}"
+                          Content="{Binding RingText}" Caption="{Binding RingCaption}" />
+            <StackPanel Grid.Column="1" Margin="26,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Headline}" Style="{StaticResource HeadlineText}" />
+                <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
+                           Margin="0,6,0,0" MaxHeight="40" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Aperçu : une ligne par catégorie, avec sa case à cocher et sa taille -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False"
+                      Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
+            <ItemsControl ItemsSource="{Binding Categories}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource RowBorder}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="30" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding IsSelected}" IsEnabled="{Binding IsAvailable}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Icon}" Style="{StaticResource IconText}"
+                                           Margin="16,0,0,0" Foreground="{StaticResource TextMutedBrush}" />
+                                <StackPanel Grid.Column="2" Margin="14,0">
+                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource SmallMutedText}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="{Binding SizeText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <ContentControl Grid.Column="4" Style="{StaticResource StatusIcon}" Content="{Binding Status}"
+                                                HorizontalAlignment="Right" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Barre d'action -->
+        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False"
+                   Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
+            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{Binding CleanLabel}"
+                    Command="{Binding CleanCommand}" MinWidth="130" />
+            <TextBlock DockPanel.Dock="Right" Text="{Binding SelectionText}" VerticalAlignment="Center" Margin="0,0,18,0"
+                       Foreground="{StaticResource TextMutedBrush}" />
+            <CheckBox DockPanel.Dock="Left" Margin="14,0,0,0" IsChecked="{Binding CreateRestorePoint}"
+                      Content="Point de restauration avant"
+                      ToolTip="Crée un point de restauration système avant de supprimer (plus lent, mais plus sûr)" />
+            <CheckBox DockPanel.Dock="Left" Margin="24,0,0,0" IsChecked="{Binding Simulation}"
+                      Content="Mode simulation"
+                      ToolTip="Fait tout comme en vrai mais ne supprime rien : pour voir ce qui serait libéré" />
+        </DockPanel>
+    </Grid>
+</UserControl>

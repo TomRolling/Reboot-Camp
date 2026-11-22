@@ -13,21 +13,20 @@ public sealed partial class MainViewModel : ObservableObject
     public string Version { get; } =
         typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "?";
 
-    // [ObservableProperty] génère le code qui prévient l'interface quand la valeur change.
     // La barre latérale modifie cette propriété, et la zone de droite affiche la page choisie.
     [ObservableProperty]
     public partial PageViewModel CurrentPage { get; set; }
 
     public MainViewModel()
     {
-        Pages =
-        [
-            new AccueilViewModel(),
-            new PilotesViewModel(),
-            new NettoyageViewModel(),
-            new ComposantsViewModel(),
-            new ExtrasViewModel(),
-        ];
-        CurrentPage = Pages[0];
+        var pilotes = new PilotesViewModel();
+        var nettoyage = new NettoyageViewModel();
+        var composants = new ComposantsViewModel();
+        var accueil = new AccueilViewModel(pilotes, nettoyage, composants, page => CurrentPage = page);
+
+        Pages = [accueil, pilotes, nettoyage, composants, new ExtrasViewModel()];
+        CurrentPage = accueil;
     }
+
+    partial void OnCurrentPageChanged(PageViewModel value) => value?.OnNavigatedTo();
 }

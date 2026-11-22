@@ -16,6 +16,10 @@ public static class AppLifetime
     /// <summary>Jeton annulé au moment où l'application se ferme.</summary>
     public static CancellationToken Token => Cts.Token;
 
+    /// <summary>Crée un jeton annulé soit par le bouton Annuler de l'onglet, soit par la fermeture de l'application.</summary>
+    public static CancellationTokenSource CreateOperation(CancellationToken external = default) =>
+        CancellationTokenSource.CreateLinkedTokenSource(Cts.Token, external);
+
     /// <summary>À appeler juste après avoir démarré un processus enfant.</summary>
     public static void RegisterChildProcess(Process process)
     {

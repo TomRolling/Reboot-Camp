@@ -6,7 +6,7 @@ Application de bureau Windows (un seul `.exe`) inspirée de Driver Booster + Adv
 Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les réponses et l'interface sont **en français**.
 
 ## Façon de travailler (OBLIGATOIRE)
-- On avance **phase par phase** (voir plus bas). À la fin de chaque phase : compiler, lancer, tester, puis **t'arrêter et demander à Tom de valider** avant de passer à la suite.
+- On avance **phase par phase** (voir plus bas). À la fin de chaque phase : compiler, lancer, tester, faire un commit, puis **enchaîner sur la suivante sans s'arrêter** (décision de Tom du 22/11/2026 : il teste le résultat final et dit ensuite ce qu'il faut changer). Les mentions « stop » de la liste des phases ne s'appliquent plus.
 - Si quelque chose n'est pas clair, **pose une question** au lieu de supposer.
 - Avant d'utiliser un identifiant `winget` ou une API système, **vérifie qu'il existe** (`winget search`, doc Microsoft). Rien d'inventé.
 - Explique brièvement ce que tu as fait à chaque phase (Tom veut comprendre le code).
@@ -35,6 +35,8 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 
 ## Design
 - Thème sombre moderne, barre latérale à gauche avec les 4 onglets + un onglet Accueil.
+- Style **épuré et minimaliste**, facile à lire : peu de texte, gros chiffres, une action principale évidente par écran. Quelqu'un qui n'y connaît rien doit comprendre.
+- **Animations** pendant les analyses et mises à jour (anneau qui tourne, barres de progression fluides, transitions entre onglets), dans l'esprit de Driver Booster. Aucune animation au repos (0 % CPU).
 - Accueil : résumé (nb de pilotes à mettre à jour, espace récupérable, composants manquants) rempli seulement après un bouton « Analyser tout ».
 - Gros bouton d'action par onglet, listes claires avec icônes d'état (OK / à mettre à jour / erreur).
 
