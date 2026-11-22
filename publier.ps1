@@ -10,6 +10,10 @@ $projet = Join-Path $PSScriptRoot 'RebootCamp\RebootCamp.csproj'
 $version = ([xml](Get-Content $projet)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
 Write-Host "Publication de la version $version..."
 
+# Les tests automatiques vérifient les règles de sécurité du nettoyage : s'il y en a un qui échoue, on ne publie pas.
+dotnet test (Join-Path $PSScriptRoot 'RebootCamp.Tests\RebootCamp.Tests.csproj') -nologo -v q
+if ($LASTEXITCODE -ne 0) { throw "Un test a échoué : publication annulée." }
+
 dotnet publish $projet -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -nologo -v q
 if ($LASTEXITCODE -ne 0) { throw "La compilation a échoué." }
 

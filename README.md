@@ -77,6 +77,16 @@ Avant toute installation, l'appli propose un point de restauration et une sauveg
 - Cache des navigateurs : cache uniquement (jamais cookies, historique ou mots de passe), et seulement si le navigateur est fermé.
 - **Mode simulation** : fait tout comme en vrai sans rien supprimer.
 
+## Tests automatiques
+
+Le dossier `RebootCamp.Tests` contient des tests qui vérifient ces règles sur de faux dossiers temporaires : rien hors de la liste blanche, liens jamais suivis, fichiers récents gardés, simulation qui ne supprime rien, fichiers verrouillés ignorés.
+
+```powershell
+dotnet test
+```
+
+`publier.ps1` les lance avant chaque publication et s'arrête si l'un d'eux échoue. Ils ne font pas partie du `.exe`.
+
 ## Comptes non administrateurs
 
 Si la personne a un compte standard et tape le mot de passe d'un compte administrateur, l'appli tourne sous ce compte administrateur. Elle le détecte, l'affiche sur l'accueil, et vise quand même les fichiers temporaires, les caches de navigateur et le démarrage de la personne connectée. Sa corbeille n'est pas accessible dans ce cas.
@@ -98,7 +108,7 @@ RebootCamp/
   Assets/       icône de l'application
 ```
 
-Seules dépendances : `CommunityToolkit.Mvvm` et `System.Management`.
+Seules dépendances de l'appli : `CommunityToolkit.Mvvm` et `System.Management`. Le projet de tests utilise en plus `xunit`.
 
 ## Licence
 

@@ -40,6 +40,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **Toujours un aperçu avant suppression** : liste des catégories, taille estimée, cases à cocher. On supprime seulement ce qui est coché.
 - On ne supprime **que** dans une liste blanche de dossiers connus (ci-dessous). Jamais ailleurs. Jamais de « nettoyage du registre ».
 - Fichiers verrouillés/en cours d'utilisation : on les ignore sans planter.
+- **Tests automatiques** (ajoutés le 22/11/2026, accord de Tom pour xUnit) : `RebootCamp.Tests` vérifie les règles du nettoyage sur de faux dossiers. Lancer `dotnet test` après toute modification de `CleanupService` ; `publier.ps1` refuse de publier si un test échoue.
 - Journal des actions dans `%LOCALAPPDATA%\RebootCamp\logs` (rotation, max ~1 Mo).
 
 ## Design
