@@ -1,6 +1,6 @@
 # Reboot Camp — Outil de maintenance Windows
 
-> Nom public choisi par Tom le 22/11/2026 : **Reboot Camp** (fichier `RebootCamp.exe`, dossiers de données `RebootCamp`). Le projet, le dossier et les espaces de noms gardent le nom interne `MaintenancePC`. Le nom affiché vient de `Services/AppInfo.cs` et du `.csproj`.
+> Nom choisi par Tom le 22/11/2026 : **Reboot Camp** (projet, dossiers, fichier `RebootCamp.exe`). Le nom affiché à l'écran est défini dans `Services/AppInfo.cs`.
 
 ## Le projet
 Application de bureau Windows (un seul `.exe`) inspirée de Driver Booster + Advanced SystemCare, mais **légère, propre et honnête**.
@@ -17,7 +17,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **C# / WPF / .NET 10 (LTS)**, pattern MVVM léger (CommunityToolkit.Mvvm autorisé, rien d'autre sans demander).
 - Accès système : `System.Management` (WMI/CIM), API COM Windows Update Agent (`Microsoft.Update.Session`), registre, `winget` en ligne de commande.
 - Manifeste avec `requireAdministrator` (nécessaire pour pilotes et nettoyage système).
-- Publication : `dotnet publish MaintenancePC/MaintenancePC.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true`
+- Publication : `dotnet publish RebootCamp/RebootCamp.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true`
   → un seul `.exe` autonome d'environ 60 Mo qui embarque .NET : il démarre sur n'importe quel Windows 10/11 64 bits sans rien installer (décision de Tom du 22/11/2026, pour pouvoir le donner à ses proches).
 - Doit fonctionner sur **Windows 10 et Windows 11**, sur n'importe quel PC (fixe ou portable, NVIDIA/AMD/Intel, toutes marques) et pour un utilisateur débutant.
 

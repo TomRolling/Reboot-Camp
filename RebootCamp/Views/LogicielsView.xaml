@@ -1,0 +1,88 @@
+<UserControl x:Class="RebootCamp.Views.LogicielsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:RebootCamp.Controls">
+    <Grid Margin="32,28,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Avant la première analyse : juste le gros bouton, au centre -->
+        <ContentControl Grid.RowSpan="4" Content="{Binding}" ContentTemplate="{StaticResource StartHero}" Focusable="False"
+                        Visibility="{Binding HasScanned, Converter={StaticResource EqualsToVis}, ConverterParameter=False}" />
+
+        <!-- Après l'analyse : en-tête compact (bouton rond + résultat) -->
+        <Grid Margin="0,0,0,22" Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <c:RingButton Width="128" Height="128"
+                          Command="{Binding RingCommand}" IsBusy="{Binding IsBusy}" Progress="{Binding Progress}"
+                          Content="{Binding RingText}" Caption="{Binding RingCaption}" />
+            <StackPanel Grid.Column="1" Margin="26,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Headline}" Style="{StaticResource HeadlineText}" />
+                <TextBlock Text="{Binding SubText}" Style="{StaticResource MutedText}" TextWrapping="Wrap"
+                           Margin="0,6,0,0" MaxHeight="40" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Liste des logiciels à mettre à jour -->
+        <Grid Grid.Row="1" Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding Message}" Style="{StaticResource MutedText}" Margin="14,10" TextWrapping="Wrap" />
+            <ListBox Style="{StaticResource RowList}" ItemsSource="{Binding Items}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="30" />
+                            </Grid.ColumnDefinitions>
+                            <!-- Plus de case à cocher une fois le logiciel mis à jour -->
+                            <CheckBox IsChecked="{Binding IsSelected}"
+                                      Visibility="{Binding Status, Converter={StaticResource EqualsToVis}, ConverterParameter=!Ok}" />
+                            <StackPanel Grid.Column="1" Margin="14,0">
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource SmallMutedText}" />
+                            </StackPanel>
+                            <ContentControl Grid.Column="2" Style="{StaticResource StatusIcon}" Content="{Binding Status}"
+                                            HorizontalAlignment="Right" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <!-- Barre d'action : visible seulement s'il reste un logiciel à mettre à jour et que rien n'est en cours -->
+        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False">
+            <DockPanel.Style>
+                <Style TargetType="DockPanel">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding HasPendingUpdates}" Value="True" />
+                                <Condition Binding="{Binding IsBusy}" Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DockPanel.Style>
+            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Mettre à jour"
+                    Command="{Binding UpgradeCommand}" MinWidth="130" />
+            <TextBlock DockPanel.Dock="Right" Text="{Binding SelectionText}" VerticalAlignment="Center" Margin="0,0,18,0"
+                       Foreground="{StaticResource TextMutedBrush}" />
+            <Button DockPanel.Dock="Left" Style="{StaticResource GhostButton}" Content="Tout cocher / décocher"
+                    Command="{Binding SelectAllCommand}" />
+        </DockPanel>
+
+        <!-- Sortie de winget en direct -->
+        <TextBox Grid.Row="3" Style="{StaticResource LogBox}" Text="{Binding Log.Text, Mode=OneWay}" Height="110" Margin="0,14,0,0"
+                 Visibility="{Binding ShowLog, Converter={StaticResource BoolToVis}}" />
+    </Grid>
+</UserControl>

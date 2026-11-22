@@ -25,13 +25,13 @@ Il faut le SDK .NET 10.
 
 ```powershell
 # Lancer en développement (depuis un terminal administrateur)
-dotnet run --project MaintenancePC
+dotnet run --project RebootCamp
 
 # Produire le .exe autonome (environ 60 Mo)
-dotnet publish MaintenancePC/MaintenancePC.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true
+dotnet publish RebootCamp/RebootCamp.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true
 ```
 
-Le résultat est `MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\RebootCamp.exe`.
+Le résultat est `RebootCamp\bin\Release\net10.0-windows\win-x64\publish\RebootCamp.exe`.
 
 ## Mises à jour de l'appli
 
@@ -74,10 +74,8 @@ Les actions sont notées dans `%LOCALAPPDATA%\RebootCamp\logs\maintenance.log` (
 
 ## Organisation du code
 
-Le projet garde son nom interne d'origine, `MaintenancePC` (dossier, espaces de noms). Le nom public est défini dans `Services/AppInfo.cs` et dans le `.csproj`.
-
 ```
-MaintenancePC/
+RebootCamp/
   Services/     accès au système : WMI, Windows Update, registre, winget, NVIDIA, suppression de fichiers
   ViewModels/   logique de chaque onglet (pattern MVVM, CommunityToolkit.Mvvm)
   Views/        écrans en XAML, sans logique
