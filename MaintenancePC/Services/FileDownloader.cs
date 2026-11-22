@@ -19,8 +19,7 @@ public static class FileDownloader
     /// <summary>Dossier de téléchargement de l'appli, vidé de ses anciens fichiers à chaque utilisation.</summary>
     public static string PrepareDownloadFolder()
     {
-        string folder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MaintenancePC", "downloads");
+        string folder = Path.Combine(AppInfo.LocalFolder, "downloads");
         Directory.CreateDirectory(folder);
         foreach (string old in Directory.GetFiles(folder))
         {

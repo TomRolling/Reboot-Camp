@@ -232,7 +232,7 @@ public sealed partial class PilotesViewModel : PageViewModel
             {
                 SubText = "Création d'un point de restauration…";
                 var (ok, message) = await RestorePointService.CreateAsync(
-                    "MaintenancePC - avant installation de pilotes", RestorePointService.DeviceDriverInstall, token);
+                    $"{AppInfo.Name} - avant installation de pilotes", RestorePointService.DeviceDriverInstall, token);
                 if (!ok)
                 {
                     Headline = "Installation non lancée";
@@ -352,7 +352,7 @@ public sealed partial class PilotesViewModel : PageViewModel
             {
                 SubText = "Création d'un point de restauration…";
                 await RestorePointService.CreateAsync(
-                    "MaintenancePC - avant pilotes " + (isAmd ? "AMD" : "Intel"), RestorePointService.DeviceDriverInstall, token);
+                    $"{AppInfo.Name} - avant pilotes " + (isAmd ? "AMD" : "Intel"), RestorePointService.DeviceDriverInstall, token);
             }
 
             (bool ok, string message) = isAmd

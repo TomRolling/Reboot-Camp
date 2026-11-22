@@ -1,4 +1,4 @@
-# MaintenancePC
+# Reboot Camp
 
 Outil de maintenance Windows : un seul `.exe`, rien qui tourne en arrière-plan, rien de supprimé sans accord.
 Fonctionne sur Windows 10 et Windows 11 (64 bits), sans rien installer avant.
@@ -14,7 +14,7 @@ Fonctionne sur Windows 10 et Windows 11 (64 bits), sans rien installer avant.
 
 ## Utilisation
 
-Copier `MaintenancePC.exe` sur le PC et double-cliquer. Windows demande les droits administrateur (fenêtre UAC) : répondre Oui.
+Copier `RebootCamp.exe` sur le PC et double-cliquer. Windows demande les droits administrateur (fenêtre UAC) : répondre Oui.
 Il n'y a rien à installer : .NET est inclus dans le fichier.
 
 `winget` est nécessaire pour les onglets Logiciels et Composants. Il est fourni avec Windows 11 et les Windows 10 récents ; sinon, installer « Programme d'installation d'application » depuis le Microsoft Store.
@@ -31,7 +31,7 @@ dotnet run --project MaintenancePC
 dotnet publish MaintenancePC/MaintenancePC.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true
 ```
 
-Le résultat est `MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\MaintenancePC.exe`.
+Le résultat est `MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\RebootCamp.exe`.
 
 ## Mises à jour de l'appli
 
@@ -54,7 +54,7 @@ Pour publier une version : augmenter `<Version>` dans le `.csproj`, lancer `.\pu
 - **AMD** (Radeon et chipset Ryzen) : un bouton télécharge l'outil officiel « Auto-Detect and Install » sur amd.com, vérifie sa signature et l'ouvre. C'est lui qui choisit et installe le pilote.
 - **Intel** (graphique, chipset, Wi-Fi, Bluetooth) : un bouton installe l'assistant officiel « Intel Driver & Support Assistant » avec winget. Cet assistant reste ensuite en arrière-plan ; on peut le désactiver dans Extras > Démarrage.
 
-Avant toute installation, l'appli propose un point de restauration et une sauvegarde des pilotes actuels dans `C:\ProgramData\MaintenancePC\SauvegardePilotes`.
+Avant toute installation, l'appli propose un point de restauration et une sauvegarde des pilotes actuels dans `C:\ProgramData\RebootCamp\SauvegardePilotes`.
 
 ## Sécurité du nettoyage
 
@@ -70,9 +70,11 @@ Si la personne a un compte standard et tape le mot de passe d'un compte administ
 
 ## Journal
 
-Les actions sont notées dans `%LOCALAPPDATA%\MaintenancePC\logs\maintenance.log` (1 Mo maximum, rotation automatique).
+Les actions sont notées dans `%LOCALAPPDATA%\RebootCamp\logs\maintenance.log` (1 Mo maximum, rotation automatique).
 
 ## Organisation du code
+
+Le projet garde son nom interne d'origine, `MaintenancePC` (dossier, espaces de noms). Le nom public est défini dans `Services/AppInfo.cs` et dans le `.csproj`.
 
 ```
 MaintenancePC/

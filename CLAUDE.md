@@ -1,4 +1,6 @@
-# MaintenancePC — Outil de maintenance Windows
+# Reboot Camp — Outil de maintenance Windows
+
+> Nom public choisi par Tom le 22/11/2026 : **Reboot Camp** (fichier `RebootCamp.exe`, dossiers de données `RebootCamp`). Le projet, le dossier et les espaces de noms gardent le nom interne `MaintenancePC`. Le nom affiché vient de `Services/AppInfo.cs` et du `.csproj`.
 
 ## Le projet
 Application de bureau Windows (un seul `.exe`) inspirée de Driver Booster + Advanced SystemCare, mais **légère, propre et honnête**.
@@ -38,7 +40,7 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 - **Toujours un aperçu avant suppression** : liste des catégories, taille estimée, cases à cocher. On supprime seulement ce qui est coché.
 - On ne supprime **que** dans une liste blanche de dossiers connus (ci-dessous). Jamais ailleurs. Jamais de « nettoyage du registre ».
 - Fichiers verrouillés/en cours d'utilisation : on les ignore sans planter.
-- Journal des actions dans `%LOCALAPPDATA%\MaintenancePC\logs` (rotation, max ~1 Mo).
+- Journal des actions dans `%LOCALAPPDATA%\RebootCamp\logs` (rotation, max ~1 Mo).
 
 ## Design
 - Thème sombre moderne, barre latérale à gauche avec les 4 onglets + un onglet Accueil.

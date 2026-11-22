@@ -116,8 +116,7 @@ public static class NvidiaDriverService
         if (!IsNvidiaDownloadUrl(driver.DownloadUrl))
             return (false, "Adresse de téléchargement refusée (ce n'est pas un serveur NVIDIA).");
 
-        string folder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MaintenancePC", "downloads");
+        string folder = Path.Combine(AppInfo.LocalFolder, "downloads");
         Directory.CreateDirectory(folder);
         string file = Path.Combine(folder, Path.GetFileName(new Uri(driver.DownloadUrl).LocalPath));
 

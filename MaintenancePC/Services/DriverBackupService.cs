@@ -9,8 +9,7 @@ namespace MaintenancePC.Services;
 /// </summary>
 public static class DriverBackupService
 {
-    public static string RootFolder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "MaintenancePC", "SauvegardePilotes");
+    public static string RootFolder { get; } = Path.Combine(AppInfo.CommonFolder, "SauvegardePilotes");
 
     public static async Task<(bool Ok, string Message)> ExportAsync(IProgress<string> output, CancellationToken token)
     {

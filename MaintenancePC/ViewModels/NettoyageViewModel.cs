@@ -122,7 +122,7 @@ public sealed partial class NettoyageViewModel : PageViewModel
             {
                 SubText = "Création d'un point de restauration…";
                 var (ok, message) = await RestorePointService.CreateAsync(
-                    "MaintenancePC - avant nettoyage", RestorePointService.ModifySettings, token);
+                    $"{AppInfo.Name} - avant nettoyage", RestorePointService.ModifySettings, token);
                 if (!ok)
                 {
                     Headline = "Nettoyage non lancé";

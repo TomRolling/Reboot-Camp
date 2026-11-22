@@ -7,6 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Nom du fichier produit et nom affiché par Windows (le projet garde son nom interne MaintenancePC). -->
+    <AssemblyName>RebootCamp</AssemblyName>
+    <Product>Reboot Camp</Product>
+    <AssemblyTitle>Reboot Camp</AssemblyTitle>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Version>1.2.0</Version>
     <!-- Publication « autonome » : le .exe embarque .NET, il démarre sur n'importe quel Windows 10/11 64 bits

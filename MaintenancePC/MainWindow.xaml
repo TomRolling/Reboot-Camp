@@ -4,7 +4,7 @@
         xmlns:vm="clr-namespace:MaintenancePC.ViewModels"
         xmlns:views="clr-namespace:MaintenancePC.Views"
         xmlns:c="clr-namespace:MaintenancePC.Controls"
-        Title="MaintenancePC"
+        Title="Reboot Camp"
         Width="1040" Height="680" MinWidth="1040" MinHeight="680"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource WindowBackgroundBrush}"
@@ -49,7 +49,7 @@
         <!-- Barre latérale -->
         <Border Grid.Column="0" Background="{StaticResource SidebarBackgroundBrush}">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="MaintenancePC" FontSize="18" FontWeight="SemiBold"
+                <TextBlock DockPanel.Dock="Top" Text="Reboot Camp" FontSize="18" FontWeight="SemiBold"
                            Margin="26,26,24,22" />
                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding Version, StringFormat=Version {0}}"
                            Margin="26,0,24,18" FontSize="12"

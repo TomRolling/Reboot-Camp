@@ -1,4 +1,4 @@
-# Fabrique le .exe autonome et, si l'outil « gh » de GitHub est installé, publie la nouvelle version.
+﻿# Fabrique le .exe autonome et, si l'outil « gh » de GitHub est installé, publie la nouvelle version.
 #
 # Avant de lancer ce script pour une nouvelle version :
 #   1. augmenter <Version> dans MaintenancePC\MaintenancePC.csproj (ex. 1.2.0 -> 1.3.0) ;
@@ -13,7 +13,7 @@ Write-Host "Publication de la version $version..."
 dotnet publish $projet -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -nologo -v q
 if ($LASTEXITCODE -ne 0) { throw "La compilation a échoué." }
 
-$exe = Join-Path $PSScriptRoot 'MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\MaintenancePC.exe'
+$exe = Join-Path $PSScriptRoot 'MaintenancePC\bin\Release\net10.0-windows\win-x64\publish\RebootCamp.exe'
 Write-Host "Fichier prêt : $exe ($([Math]::Round((Get-Item $exe).Length / 1MB)) Mo)"
 
 if (Get-Command gh -ErrorAction SilentlyContinue) {

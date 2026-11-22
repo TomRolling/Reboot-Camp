@@ -316,7 +316,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
         try
         {
             var (_, message) = await RestorePointService.CreateAsync(
-                "MaintenancePC - point manuel", RestorePointService.ModifySettings, token);
+                $"{AppInfo.Name} - point manuel", RestorePointService.ModifySettings, token);
             RepairStatus = message;
         }
         catch (OperationCanceledException)
@@ -369,7 +369,7 @@ public sealed partial class ExtrasViewModel : PageViewModel
             text.AppendLine($"== {title} ==");
         }
 
-        text.AppendLine($"Rapport MaintenancePC du {DateTime.Now:dd/MM/yyyy à HH:mm}");
+        text.AppendLine($"Rapport {AppInfo.Name} du {DateTime.Now:dd/MM/yyyy à HH:mm}");
 
         Section("Ordinateur");
         foreach (var line in GetSystemLines()) text.AppendLine($"{line.Label} : {line.Value}");

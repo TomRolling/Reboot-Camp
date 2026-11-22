@@ -3,7 +3,7 @@ using System.IO;
 namespace MaintenancePC.Services;
 
 /// <summary>
-/// Journal des actions dans %LOCALAPPDATA%\MaintenancePC\logs.
+/// Journal des actions dans %LOCALAPPDATA%\RebootCamp\logs.
 /// Rotation : quand le fichier dépasse 512 Ko il devient « maintenance.old.log » (l'ancien est écrasé),
 /// donc le dossier ne dépasse jamais environ 1 Mo.
 /// </summary>
@@ -13,8 +13,7 @@ public static class Logger
 
     private static readonly Lock Gate = new();
 
-    public static string Folder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MaintenancePC", "logs");
+    public static string Folder { get; } = Path.Combine(AppInfo.LocalFolder, "logs");
 
     private static readonly string FilePath = Path.Combine(Folder, "maintenance.log");
     private static readonly string OldFilePath = Path.Combine(Folder, "maintenance.old.log");

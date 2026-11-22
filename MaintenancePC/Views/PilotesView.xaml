@@ -113,7 +113,7 @@
                               ToolTip="Permet de revenir en arrière si un pilote pose problème (recommandé)" />
                     <CheckBox DockPanel.Dock="Left" Margin="22,0,0,0" IsChecked="{Binding BackupDrivers}"
                               Content="Sauvegarder les pilotes actuels"
-                              ToolTip="Copie les pilotes installés dans C:\ProgramData\MaintenancePC\SauvegardePilotes (quelques minutes, 1 à 3 Go)" />
+                              ToolTip="Copie les pilotes installés dans C:\ProgramData\RebootCamp\SauvegardePilotes (quelques minutes, 1 à 3 Go)" />
                 </DockPanel>
             </Grid>
 

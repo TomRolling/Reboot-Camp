@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Windows;
 using MaintenancePC.Services;
 
@@ -12,6 +12,9 @@ public partial class App : Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Avant tout le reste : récupère les dossiers de l'ancien nom de l'appli, s'il y en a.
+        AppInfo.MigrateOldFolders();
+
         // Nécessaire pour lire la sortie de DISM (page de codes « OEM » 850, absente de .NET par défaut).
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
