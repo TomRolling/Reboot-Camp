@@ -1,12 +1,67 @@
 ﻿<Window x:Class="MaintenancePC.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:MaintenancePC"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        xmlns:vm="clr-namespace:MaintenancePC.ViewModels"
+        Title="MaintenancePC"
+        Width="1000" Height="640" MinWidth="820" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource WindowBackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="14"
+        UseLayoutRounding="True">
 
+    <Window.Resources>
+        <!-- Page provisoire : utilisée pour tous les onglets tant qu'ils n'ont pas leur propre vue.
+             WPF choisit ce modèle pour toute classe dérivée de PageViewModel. -->
+        <DataTemplate DataType="{x:Type vm:PageViewModel}">
+            <StackPanel Margin="32,28">
+                <TextBlock Text="{Binding Title}" FontSize="26" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Description}" Margin="0,6,0,24" TextWrapping="Wrap"
+                           Foreground="{StaticResource TextMutedBrush}" />
+                <Border Background="{StaticResource CardBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="20">
+                    <TextBlock Text="Cet onglet sera construit dans une prochaine phase."
+                               Foreground="{StaticResource TextMutedBrush}" />
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="210" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Barre latérale -->
+        <Border Grid.Column="0" Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="MaintenancePC" FontSize="18" FontWeight="SemiBold"
+                           Margin="24,24,24,20" />
+                <TextBlock DockPanel.Dock="Bottom" Text="{Binding Version, StringFormat=Version {0}}"
+                           Margin="24,0,24,16" FontSize="12"
+                           Foreground="{StaticResource TextMutedBrush}" />
+
+                <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding CurrentPage}"
+                         ItemContainerStyle="{StaticResource SidebarItemStyle}"
+                         Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Icon}" FontFamily="{StaticResource IconFont}"
+                                           FontSize="16" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Contenu de l'onglet sélectionné -->
+        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" Focusable="False" />
     </Grid>
 </Window>
