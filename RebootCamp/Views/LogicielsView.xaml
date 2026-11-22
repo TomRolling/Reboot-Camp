@@ -32,6 +32,10 @@
 
         <!-- Liste des logiciels à mettre à jour -->
         <Grid Grid.Row="1" Visibility="{Binding HasScanned, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <TextBlock Text="{Binding Message}" Style="{StaticResource MutedText}" Margin="14,10" TextWrapping="Wrap" />
             <ListBox Style="{StaticResource RowList}" ItemsSource="{Binding Items}">
                 <ListBox.ItemTemplate>
@@ -40,22 +44,46 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
                                 <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="30" />
                             </Grid.ColumnDefinitions>
-                            <!-- Plus de case à cocher une fois le logiciel mis à jour -->
+                            <!-- Pas de case à cocher une fois le logiciel mis à jour, ni quand winget ne peut pas faire la mise à jour -->
                             <CheckBox IsChecked="{Binding IsSelected}"
-                                      Visibility="{Binding Status, Converter={StaticResource EqualsToVis}, ConverterParameter=!Ok}" />
+                                      Visibility="{Binding CanSelect, Converter={StaticResource BoolToVis}}" />
                             <StackPanel Grid.Column="1" Margin="14,0">
                                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                 <!-- Sur plusieurs lignes si besoin : en cas d'échec, c'est ici qu'est l'explication -->
                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource SmallMutedText}" TextWrapping="Wrap" />
                             </StackPanel>
-                            <ContentControl Grid.Column="2" Style="{StaticResource StatusIcon}" Content="{Binding Status}"
+                            <!-- Ligne « bloquée » : un bouton pour réessayer, ou pour désinstaller puis réinstaller -->
+                            <Button x:Name="Fix" Grid.Column="2" Style="{StaticResource GhostButton}" Padding="12,5" FontSize="12.5"
+                                    Content="{Binding BlockedAction}" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"
+                                    Command="{Binding DataContext.FixBlockedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}" />
+                            <ContentControl Grid.Column="3" Style="{StaticResource StatusIcon}" Content="{Binding Status}"
                                             HorizontalAlignment="Right" />
                         </Grid>
+                        <DataTemplate.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsBlocked}" Value="True" />
+                                    <Condition Binding="{Binding DataContext.IsBusy, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Fix" Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+
+            <!-- Logiciels qui ne sont plus proposés (déjà à jour, mais mal lus par winget), avec de quoi les réafficher -->
+            <DockPanel Grid.Row="1" Margin="14,10,0,0"
+                       Visibility="{Binding HiddenNote, Converter={StaticResource EqualsToVis}, ConverterParameter=!}">
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="12,5" FontSize="12.5" Content="Réafficher"
+                        Margin="12,0,0,0" VerticalAlignment="Center" Command="{Binding ShowHiddenCommand}"
+                        ToolTip="Les propose de nouveau à la mise à jour, au cas où l'une d'elles serait à refaire" />
+                <TextBlock Text="{Binding HiddenNote}" Style="{StaticResource SmallMutedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
         </Grid>
 
         <!-- Barre d'action : visible seulement s'il reste un logiciel à mettre à jour et que rien n'est en cours -->

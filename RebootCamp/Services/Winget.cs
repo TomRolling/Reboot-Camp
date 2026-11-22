@@ -55,15 +55,39 @@ public static class Winget
     public static bool IsBlocked(int exitCode) =>
         exitCode is InstallerHashMismatch or TechnologyMismatch or UpgradeNotSupported or PackageIsPinned;
 
+    /// <summary>
+    /// Vrai quand la mise à jour est refusée parce que la nouvelle version s'installe autrement que l'ancienne :
+    /// désinstaller l'ancienne puis installer la nouvelle règle alors le problème.
+    /// </summary>
+    public static bool CanReinstall(int exitCode) => exitCode is TechnologyMismatch or UpgradeNotSupported;
+
+    /// <summary>Désinstalle un paquet avec winget (première moitié d'un « désinstaller puis réinstaller »).</summary>
+    /// <exception cref="System.ComponentModel.Win32Exception">Si winget est introuvable.</exception>
+    public static async Task<(bool Ok, int Code)> UninstallAsync(string id, IProgress<string>? output, CancellationToken token)
+    {
+        // Options vérifiées avec « winget uninstall --help » (pas de « --accept-package-agreements » pour cette commande).
+        string arguments = $"uninstall --id {id} --exact --silent --accept-source-agreements --disable-interactivity";
+
+        output?.Report($"> winget {arguments}");
+        Logger.Info($"winget uninstall {id}");
+
+        int code;
+        using (RestartService.Guard())
+            code = await ProcessRunner.RunAsync("winget", arguments, output, token);
+
+        Logger.Info($"winget uninstall {id} : code 0x{code:X8}");
+        return (code == 0, code);
+    }
+
     /// <summary>Explication en clair d'un échec connu, ou null si le code ne dit rien d'utile.</summary>
     public static string? Explain(int exitCode) => exitCode switch
     {
         InstallerHashMismatch =>
             "L'éditeur a changé son fichier d'installation et winget ne l'a pas encore vérifié : par sécurité, rien n'est installé. " +
-            "Mets-le à jour depuis le logiciel lui-même, ou réessaie dans quelques jours.",
+            "Ouvre le logiciel pour qu'il se mette à jour tout seul, ou réessaie dans quelques jours.",
         TechnologyMismatch or UpgradeNotSupported =>
             "La nouvelle version s'installe autrement que celle du PC : winget ne peut pas la poser par-dessus. " +
-            "Mets-le à jour depuis le logiciel lui-même, ou désinstalle-le puis réinstalle-le.",
+            "Il faut désinstaller l'ancienne puis installer la nouvelle.",
         PackageIsPinned => "Ce logiciel est verrouillé sur sa version actuelle dans winget (paquet épinglé).",
         PackageInUse or FileInUse or InUseByApplication => "Le logiciel est ouvert : ferme-le, puis réessaie.",
         InstallInProgress => "Une autre installation est déjà en cours sur le PC. Réessaie dans un instant.",

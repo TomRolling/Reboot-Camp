@@ -88,6 +88,10 @@ Utilisateur : Tom, BTS SIO, PC portable Asus (Windows, GPU NVIDIA). Toutes les r
 
 ### 3 bis. Logiciels (ajouté le 22/11/2026)
 - Liste les logiciels installés qui ont une mise à jour (`winget upgrade`), cases à cocher, mise à jour de la sélection, journal winget.
+- « Soit ça marche, soit ce n'est pas proposé comme à faire » (demande de Tom du 22/11/2026). Le carnet `UpdateMemory` (`%LOCALAPPDATA%\RebootCamp\logiciels.json`) retient chaque tentative, pour la version proposée à ce moment-là :
+  - mise à jour réussie que winget repropose quand même (numéro de version mal lu, ex. Lunar Client « 3.7.28-ow ») : le logiciel n'est plus listé, une phrase le dit en bas, bouton « Réafficher » ;
+  - mise à jour que winget ne peut pas faire (`Winget.IsBlocked`) : ligne mise à part en orange, sans case, non comptée sur l'accueil, avec l'explication et un bouton — « Réessayer » (empreinte de l'installeur non vérifiée) ou « Désinstaller puis réinstaller » (technologie d'installation différente, après confirmation).
+  - Ne jamais contourner la vérification d'empreinte de winget (`--ignore-security-hash`).
 
 ### 3 ter. Désinstaller (ajouté le 22/11/2026, demande de Tom : « comme Revo Uninstaller, mais sans toucher au registre »)
 - Deux catégories : **Programmes** (liste des programmes installés de Windows, lue dans le registre) et **Applications Windows** (Microsoft Store et applications fournies avec Windows, via `Get-AppxPackage` + `Get-StartApps`).

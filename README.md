@@ -66,6 +66,16 @@ Pour publier une version : augmenter `<Version>` dans le `.csproj`, faire un com
 - Pas de télémétrie, pas de publicité. Le réseau n'est utilisé que par Windows Update, winget et le service de pilotes de NVIDIA, quand on le demande.
 - Pas de « nettoyage du registre » : le registre de Windows est lu (c'est là que se trouve la liste des programmes), jamais modifié. Pas de BIOS ni de firmware.
 
+## Logiciels : quand une mise à jour ne passe pas
+
+L'onglet Logiciels s'appuie sur `winget`, l'outil de Microsoft. Trois cas où il ne peut pas tout faire, et ce que l'appli en fait :
+
+- **L'éditeur a changé son fichier d'installation** sans que winget l'ait revérifié : winget refuse de l'installer, par sécurité, et l'appli ne contourne jamais cette vérification. La ligne passe en orange avec un bouton « Réessayer » ; en attendant, le logiciel se met souvent à jour tout seul quand on l'ouvre.
+- **La nouvelle version s'installe autrement que l'ancienne** : winget ne peut pas la poser par-dessus. L'appli propose « Désinstaller puis réinstaller », après confirmation.
+- **Le logiciel annonce mal son numéro de version** : winget le croit ancien alors qu'il est à jour, et le reproposerait à chaque analyse. Une fois la mise à jour faite, l'appli ne le propose plus et l'indique en bas de la liste (bouton « Réafficher »).
+
+Ces lignes ne sont pas comptées dans les mises à jour à faire. L'appli s'en souvient d'une ouverture à l'autre dans `%LOCALAPPDATA%\RebootCamp\logiciels.json`, et réessaie d'elle-même dès que winget propose une version plus récente.
+
 ## Pilotes : d'où viennent-ils ?
 
 - **Windows Update** pour tous les périphériques (y compris chipset et processeur).
